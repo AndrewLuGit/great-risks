@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.16...3.22)
 
+include(FetchContent)
+
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
+FetchContent_MakeAvailable(json)
+
 option(FORCE_COLORED_OUTPUT "Always produce ANSI-colored output." ON)
 
 if(FORCE_COLORED_OUTPUT)
@@ -66,6 +71,7 @@ target_include_directories(test
 target_link_libraries(test
     PRIVATE
     great_risks_lib
+    nlohmann_json::nlohmann_json
 )
 
 # install(
