@@ -128,7 +128,7 @@ namespace great_risks
         return NO_GOAL;
     }
 
-    std::vector<Action> Field::legal_actions(int i)
+    std::vector<Action> Field::legal_actions(std::uint8_t i)
     {
         Robot robot = robots[i];
         std::vector<Action> result;
@@ -208,7 +208,7 @@ namespace great_risks
         return result;
     }
 
-    Field Field::perform_action(int i, Action a) {
+    Field Field::perform_action(std::uint8_t i, Action a) {
         Field result = *this;
         Robot &robot = result.robots[i];
         switch (a)
@@ -341,5 +341,53 @@ namespace great_risks
         if (red_score < 0) red_score = 0;
         if (blue_score < 0) blue_score = 0;
         return {red_score, blue_score};
+    }
+    std::pair<std::array<std::uint8_t, 2>, std::vector<Action>> Field::shortest_path(std::array<std::uint8_t, 2> begin, std::unordered_set<std::array<std::uint8_t, 2>> targets, bool is_red) {
+        std::unordered_set<std::array<std::uint8_t, 2>> explored;
+        std::deque<std::pair<std::array<std::uint8_t, 2>, std::vector<Action>>> queue;
+        queue.push_back({begin, std::vector<Action>()});
+        explored.insert(begin);
+        while (!queue.empty()) {
+            auto v = queue.front();
+            queue.pop_front();
+            if (targets.find(v.first) != targets.end()) {
+                return v;
+            }
+            auto x = v.first[0];
+            auto y = v.first[1];
+            std::array<std::uint8_t, 2> north_pos = {static_cast<uint8_t>(x - 1), y};
+            std::array<std::uint8_t, 2> south_pos = {static_cast<uint8_t>(x + 1), y};
+            std::array<std::uint8_t, 2> east_pos = {x, static_cast<uint8_t>(y + 1)};
+            std::array<std::uint8_t, 2> west_pos = {x, static_cast<uint8_t>(y - 1)};
+            if (legal_move(x - 1, y, is_red, *this) && explored.find(north_pos) == explored.end())
+            {
+                auto moves = v.second;
+                moves.push_back(MOVE_NORTH);
+                queue.push_back({north_pos, moves});
+                explored.insert(north_pos);
+            }
+            if (legal_move(x + 1, y, is_red, *this) && explored.find(south_pos) == explored.end())
+            {
+                auto moves = v.second;
+                moves.push_back(MOVE_SOUTH);
+                queue.push_back({south_pos, moves});
+                explored.insert(south_pos);
+            }
+            if (legal_move(x, y + 1, is_red, *this) && explored.find(east_pos) == explored.end())
+            {
+                auto moves = v.second;
+                moves.push_back(MOVE_EAST);
+                queue.push_back({east_pos, moves});
+                explored.insert(east_pos);
+            }
+            if (legal_move(x, y - 1, is_red, *this) && explored.find(west_pos) == explored.end())
+            {
+                auto moves = v.second;
+                moves.push_back(MOVE_WEST);
+                queue.push_back({west_pos, moves});
+                explored.insert(west_pos);
+            }
+        }
+        return {begin, std::vector<Action>()};
     }
 }  // namespace great_risks

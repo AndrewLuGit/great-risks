@@ -4,7 +4,29 @@
 #include <cstdint>
 #include <deque>
 #include <string>
+#include <unordered_set>
 #include <vector>
+
+namespace std
+{
+    template<typename T, size_t N>
+    struct hash<array<T, N> >
+    {
+        typedef array<T, N> argument_type;
+        typedef size_t result_type;
+
+        result_type operator()(const argument_type& a) const
+        {
+            hash<T> hasher;
+            result_type h = 0;
+            for (result_type i = 0; i < N; ++i)
+            {
+                h = h * 31 + hasher(a[i]);
+            }
+            return h;
+        }
+    };
+}
 
 #define ON_ROBOT 255
 #define NO_GOAL 255
@@ -57,7 +79,7 @@ namespace great_risks
         SCORE_MOBILE_GOAL,
         SCORE_WALL_STAKE,
         DESCORE_MOBILE_GOAL,
-        DESCORE_WALL_STAKE
+        DESCORE_WALL_STAKE,
     };
 
     class Field
@@ -71,8 +93,11 @@ namespace great_risks
         std::uint8_t time_remaining = 120;
         Field();
         void add_robot(Robot robot);
-        std::vector<Action> legal_actions(int i);
-        Field perform_action(int i, Action a);
+        std::vector<Action> legal_actions(std::uint8_t i);
+        Field perform_action(std::uint8_t i, Action a);
         std::array<int, 2> calculate_scores();
+        std::pair<std::array<std::uint8_t, 2>, std::vector<Action>> shortest_path(std::array<std::uint8_t, 2> begin, std::unordered_set<std::array<std::uint8_t, 2>> targets, bool is_red);
     };
+
+    bool in_protected_corner(int x, int y, int time_remaining);
 }  // namespace great_risks

@@ -43,6 +43,8 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")
 
 list(APPEND GREAT_RISKS_SOURCES
   src/great_risks/simulator.cc
+  src/great_risks/greedy_agent.cc
+  src/great_risks/random_agent.cc
 )
 
 add_library(great_risks_lib
@@ -69,6 +71,20 @@ target_include_directories(test
 )
 
 target_link_libraries(test
+    PRIVATE
+    great_risks_lib
+    nlohmann_json::nlohmann_json
+)
+
+add_executable(agent_game
+  scripts/agent_game.cc
+)
+
+target_include_directories(agent_game
+    SYSTEM PRIVATE
+)
+
+target_link_libraries(agent_game
     PRIVATE
     great_risks_lib
     nlohmann_json::nlohmann_json
