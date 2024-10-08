@@ -29,8 +29,30 @@ namespace great_risks {
             if (std::find(legal_actions.begin(), legal_actions.end(), SCORE_MOBILE_GOAL) != legal_actions.end()) {
                 return SCORE_MOBILE_GOAL;
             }
+            // if we can score on wall stake
+            if (std::find(legal_actions.begin(), legal_actions.end(), SCORE_WALL_STAKE) != legal_actions.end()) {
+                return SCORE_WALL_STAKE;
+            }
+            bool left_corner_occupied = false;
+            bool right_corner_occupied = false;
+            for (auto &goal : field.goals) {
+                if (goal.x == 10 && goal.y == 0) {
+                    left_corner_occupied = true;
+                }
+                if (goal.x == 10 && goal.y == 10) {
+                    right_corner_occupied = true;
+                }
+            }
+            // get state of positive corners
+            std::unordered_set<std::array<std::uint8_t, 2>> positive_corners;
+            if (!left_corner_occupied && field.time_remaining > 15) {
+                positive_corners.insert({10, 0});
+            }
+            if (!right_corner_occupied && field.time_remaining > 15) {
+                positive_corners.insert({10, 10});
+            }
             // otherwise if goal can fit more rings pick up rings
-            if (goal.rings.size() < 6) {
+            if (goal.rings.size() < 6 || (positive_corners.empty() && robot_state.rings.size() < 2)) {
                 if (robot_state.is_red && std::find(legal_actions.begin(), legal_actions.end(), PICK_UP_RED) != legal_actions.end()) {
                     return PICK_UP_RED;
                 }
@@ -51,33 +73,29 @@ namespace great_risks {
                 }
                 if (!grabbable_rings.empty()) {
                     auto search_result = field.shortest_path({robot_state.x, robot_state.y}, grabbable_rings, robot_state.is_red);
-                    return search_result.second[0];
+                    if (!search_result.second.empty()) {
+                        return search_result.second[0];
+                    }
                 }
             }
             // otherwise try to release goal in positive corner
-            bool left_corner_occupied = false;
-            bool right_corner_occupied = false;
-            for (auto &goal : field.goals) {
-                if (goal.x == 10 && goal.y == 0) {
-                    left_corner_occupied = true;
-                }
-                if (goal.x == 10 && goal.y == 10) {
-                    right_corner_occupied = true;
-                }
-            }
-            std::unordered_set<std::array<std::uint8_t, 2>> positive_corners;
-            if (!left_corner_occupied) {
-                positive_corners.insert({10, 0});
-            }
-            if (!right_corner_occupied) {
-                positive_corners.insert({10, 10});
-            }
             if (!positive_corners.empty()) {
                 auto search_result = field.shortest_path({robot_state.x, robot_state.y}, positive_corners, robot_state.is_red);
                 if (!search_result.second.empty()) {
                     return search_result.second[0];
-                } else if (std::find(legal_actions.begin(), legal_actions.end(), RELEASE_MOBILE_GOAL) != legal_actions.end()) {
+                } else if (positive_corners.find(search_result.first) != positive_corners.end() && std::find(legal_actions.begin(), legal_actions.end(), RELEASE_MOBILE_GOAL) != legal_actions.end()) {
+                    // only release goal in positive corner, otherwise keep goal on robot
                     return RELEASE_MOBILE_GOAL;
+                }
+            }
+            if (robot_state.rings.size() > 0) {
+                std::unordered_set<std::array<std::uint8_t, 2>> stakes = {
+                    {0, 5},
+                    {10, 5}
+                };
+                auto search_result = field.shortest_path({robot_state.x, robot_state.y}, stakes, robot_state.is_red);
+                if (!search_result.second.empty()) {
+                    return search_result.second[0];
                 }
             }
         }

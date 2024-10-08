@@ -35,7 +35,8 @@ if __name__ == "__main__":
                 canvas.create_text(23 + 45 * goal["y"], 23 + 45 * goal["x"], text="G", tags="elements")
         for i, stake in enumerate(state["stakes"]):
             label_text += f"Stake {i}: {json.dumps(stake)}{newline}"
-        label_text += f"Robot: {json.dumps(state["robots"][0])}{newline}"
+        for i, robot in enumerate(state["robots"]):
+            label_text += f"Robot {i}: {json.dumps(robot)}{newline}"
         label_text += f"Red Score: {state["scores"]["red"]}, Blue Score: {state["scores"]["blue"]}{newline}"
         label_text += f"Time Remaining: {state["time_remaining"]}"
         label["text"] = label_text

@@ -76,8 +76,8 @@ auto main(int argc, char**argv) -> int
     field.add_robot(robot_4);
     std::vector<Agent*> agents;
     agents.push_back(new GreedyAgent(0));
-    agents.push_back(new RandomAgent(1));
-    agents.push_back(new RandomAgent(2));
+    agents.push_back(new GreedyAgent(1));
+    agents.push_back(new GreedyAgent(2));
     agents.push_back(new GreedyAgent(3));
     while (true) {
         print_state();
