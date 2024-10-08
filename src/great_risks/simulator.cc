@@ -111,84 +111,85 @@ namespace great_risks
         return true;
     }
 
-    std::unordered_set<Action> Field::legal_actions(int i)
+    bool in_protected_corner(int x, int y, int time_remaining) {
+        return time_remaining <= 15 && x == 10 && (y == 0 || y == 10);
+    }
+
+    std::uint8_t can_interact_with_goal(int x, int y, Field &field) {
+        // cannot interact with positive corners during endgame
+        if (in_protected_corner(x, y, field.time_remaining)) {
+            return NO_GOAL;
+        }
+        for (int i = 0; i < 5; i++) {
+            if (field.goals[i].x == x && field.goals[i].y == y) {
+                return i;
+            }
+        }
+        return NO_GOAL;
+    }
+
+    std::vector<Action> Field::legal_actions(int i)
     {
         Robot robot = robots[i];
-        std::unordered_set<Action> result;
+        std::vector<Action> result;
         if (legal_move(robot.x - 1, robot.y, robot.is_red, *this))
         {
-            result.insert(MOVE_NORTH);
+            result.push_back(MOVE_NORTH);
         }
         if (legal_move(robot.x + 1, robot.y, robot.is_red, *this))
         {
-            result.insert(MOVE_SOUTH);
+            result.push_back(MOVE_SOUTH);
         }
         if (legal_move(robot.x, robot.y + 1, robot.is_red, *this))
         {
-            result.insert(MOVE_EAST);
+            result.push_back(MOVE_EAST);
         }
         if (legal_move(robot.x, robot.y - 1, robot.is_red, *this))
         {
-            result.insert(MOVE_WEST);
+            result.push_back(MOVE_WEST);
         }
-        if (robot.goal == -1)
+        std::uint8_t goal = can_interact_with_goal(robot.x, robot.y, *this);
+        if (robot.goal == NO_GOAL && goal != NO_GOAL)
         {
-            if (time_remaining > 15 || (robot.x != 10 && robot.y != 0 && robot.y != 10))
+            if (goals[goal].tipped)
             {
-                for (MobileGoal &goal : goals)
-                {
-                    if (goal.x == robot.x && goal.y == robot.y)
-                    {
-                        if (goal.tipped)
-                        {
-                            result.insert(UNTIP_MOBILE_GOAL);
-                        }
-                        else
-                        {
-                            result.insert(GRAB_MOBILE_GOAL);
-                            result.insert(TIP_MOBILE_GOAL);
-                        }
-                    }
-                }
+                result.push_back(UNTIP_MOBILE_GOAL);
+            }
+            else
+            {
+                result.push_back(GRAB_MOBILE_GOAL);
+                result.push_back(TIP_MOBILE_GOAL);
             }
         }
-        else
+        else if (robot.goal != NO_GOAL)
         {
-            bool can_release = true;
-            for (MobileGoal &goal : goals)
+            if (goal == NO_GOAL && !in_protected_corner(robot.x, robot.y, time_remaining))
             {
-                if (goal.x == robot.x && goal.y == robot.y)
-                {
-                    can_release = false;
-                }
-            }
-            if (can_release)
-            {
-                result.insert(RELEASE_MOBILE_GOAL);
+                result.push_back(RELEASE_MOBILE_GOAL);
             }
             if (!robot.rings.empty() && goals[robot.goal].rings.size() < 6)
             {
-                result.insert(SCORE_MOBILE_GOAL);
+                result.push_back(SCORE_MOBILE_GOAL);
             }
             if (!goals[robot.goal].rings.empty() && robot.rings.size() < 2)
             {
-                result.insert(DESCORE_MOBILE_GOAL);
+                result.push_back(DESCORE_MOBILE_GOAL);
             }
         }
         if (robot.rings.size() < 2)
         {
             if (red_rings[robot.x][robot.y])
             {
-                result.insert(PICK_UP_RED);
+                result.push_back(PICK_UP_RED);
             }
             if (blue_rings[robot.x][robot.y])
             {
-                result.insert(PICK_UP_BLUE);
+                result.push_back(PICK_UP_BLUE);
             }
         }
         if (!robot.rings.empty())
         {
-            result.insert(RELEASE_RING);
+            result.push_back(RELEASE_RING);
         }
         for (WallStake &stake : stakes)
         {
@@ -196,11 +197,11 @@ namespace great_risks
             {
                 if (!robot.rings.empty() && stake.rings.size() < 6)
                 {
-                    result.insert(SCORE_WALL_STAKE);
+                    result.push_back(SCORE_WALL_STAKE);
                 }
                 if (!stake.rings.empty() && robot.rings.size() < 2)
                 {
-                    result.insert(DESCORE_WALL_STAKE);
+                    result.push_back(DESCORE_WALL_STAKE);
                 }
             }
         }
@@ -228,15 +229,15 @@ namespace great_risks
             for (int i = 0; i < 5; i++) {
                 if (result.goals[i].x == robot.x && result.goals[i].y == robot.y) {
                     robot.goal = i;
-                    result.goals[i].x = -1;
-                    result.goals[i].y = -1;
+                    result.goals[i].x = ON_ROBOT;
+                    result.goals[i].y = ON_ROBOT;
                 }
             }
             break;
         case RELEASE_MOBILE_GOAL:
             result.goals[robot.goal].x = robot.x;
             result.goals[robot.goal].y = robot.y;
-            robot.goal = -1;
+            robot.goal = ON_ROBOT;
             break;
         case TIP_MOBILE_GOAL:
             for (int i = 0; i < 5; i++) {
@@ -254,14 +255,14 @@ namespace great_risks
             break;
         case PICK_UP_RED:
             result.red_rings[robot.x][robot.y]--;
-            robot.rings.push_back('R');
+            robot.rings.push_back(RED);
             break;
         case PICK_UP_BLUE:
             result.blue_rings[robot.x][robot.y]--;
-            robot.rings.push_back('B');
+            robot.rings.push_back(BLUE);
             break;
         case RELEASE_RING:
-            if (robot.rings.back() == 'R') {
+            if (robot.rings.back() == RED) {
                 result.red_rings[robot.x][robot.y]++;
             } else {
                 result.blue_rings[robot.x][robot.y]++;
@@ -270,31 +271,28 @@ namespace great_risks
             break;
         case SCORE_MOBILE_GOAL:
             result.goals[robot.goal].rings.push_back(robot.rings.front());
-            robot.rings.erase(0, 1);
+            robot.rings.pop_front();
             break;
         case SCORE_WALL_STAKE:
             for (WallStake &stake : result.stakes) {
                 if (stake.x == robot.x && stake.y == robot.y) {
                     stake.rings.push_back(robot.rings.front());
-                    robot.rings.erase(0, 1);
+                    robot.rings.pop_front();
                 }
             }
             break;
         case DESCORE_MOBILE_GOAL:
-            robot.rings.insert(robot.rings.begin(), result.goals[robot.goal].rings.back());
+            robot.rings.push_front(result.goals[robot.goal].rings.back());
             result.goals[robot.goal].rings.pop_back();
             break;
         case DESCORE_WALL_STAKE:
             for (WallStake &stake : result.stakes) {
                 if (stake.x == robot.x && stake.y == robot.y) {
-                    robot.rings.insert(robot.rings.begin(), stake.rings.back());
+                    robot.rings.push_front(stake.rings.back());
                     stake.rings.pop_back();
                 }
             }
             break;
-        }
-        if (i == robots.size() - 1) {
-            result.time_remaining--;
         }
         return result;
     }
@@ -310,14 +308,14 @@ namespace great_risks
                 } else if (goal.x == 10 && (goal.y == 0 || goal.y == 10)) {
                     multiplier = 2;
                 }
-                for (char &c : goal.rings) {
-                    if (c == 'R') {
+                for (auto &c : goal.rings) {
+                    if (c == RED) {
                         red_score += multiplier;
                     } else {
                         blue_score += multiplier;
                     }
                 }
-                if (goal.rings.back() == 'R') {
+                if (goal.rings.back() == RED) {
                     red_score += 2 * multiplier;
                 } else {
                     blue_score += 2 * multiplier;
@@ -326,14 +324,14 @@ namespace great_risks
         }
         for (WallStake &stake : stakes) {
             if (!stake.rings.empty()) {
-                for (char &c : stake.rings) {
-                    if (c == 'R') {
+                for (auto &c : stake.rings) {
+                    if (c == RED) {
                         red_score += 1;
                     } else {
                         blue_score += 1;
                     }
                 }
-                if (stake.rings.back() == 'R') {
+                if (stake.rings.back() == RED) {
                     red_score += 2;
                 } else {
                     blue_score += 2;

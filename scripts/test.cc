@@ -34,16 +34,15 @@ void print_state() {
         });
     }
     j["time_remaining"] = field.time_remaining;
-    j["legal_actions"] = json::array();
-    for (const Action &a : field.legal_actions(0)) {
-        j["legal_actions"].push_back(a);
-    }
+    j["legal_actions"] = field.legal_actions(0);
 
     auto [red_score, blue_score] = field.calculate_scores();
     j["scores"] = {
         {"red", red_score},
         {"blue", blue_score}
     };
+    j["red_rings"] = field.red_rings;
+    j["blue_rings"] = field.blue_rings;
     std::cout << j.dump() << std::endl;
 }
 
@@ -59,8 +58,9 @@ auto main(int argc, char**argv) -> int
         json j;
         std::cin >> j;
         auto legal_actions = field.legal_actions(0);
-        if (legal_actions.find(j["action"]) != legal_actions.end()) {
+        if (std::find(legal_actions.begin(), legal_actions.end(), j["action"]) != legal_actions.end()) {
             field = field.perform_action(0, j["action"]);
+            field.time_remaining--;
         }
     }
 }

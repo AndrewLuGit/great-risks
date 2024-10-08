@@ -1,34 +1,43 @@
 #pragma once
 
-
 #include <array>
+#include <cstdint>
+#include <deque>
 #include <string>
 #include <vector>
-#include <unordered_set>
+
+#define ON_ROBOT 255
+#define NO_GOAL 255
 
 namespace great_risks
 {
+    enum Ring
+    {
+        RED,
+        BLUE
+    };
+
     struct MobileGoal
     {
-        int x;
-        int y;
-        std::string rings;
+        std::uint8_t x;
+        std::uint8_t y;
+        std::deque<Ring> rings;
         bool tipped;
     };
 
     struct WallStake
     {
-        int x;
-        int y;
-        std::string rings;
+        std::uint8_t x;
+        std::uint8_t y;
+        std::deque<Ring> rings;
     };
 
     struct Robot
     {
-        int x;
-        int y;
-        int goal = -1;
-        std::string rings;
+        std::uint8_t x;
+        std::uint8_t y;
+        std::uint8_t goal = NO_GOAL;
+        std::deque<Ring> rings;
         bool is_red;
     };
 
@@ -56,13 +65,13 @@ namespace great_risks
     public:
         MobileGoal goals[5];
         WallStake stakes[2];
-        int red_rings[11][11] = {};
-        int blue_rings[11][11] = {};
+        std::uint8_t red_rings[11][11] = {};
+        std::uint8_t blue_rings[11][11] = {};
         std::vector<Robot> robots;
-        int time_remaining = 120;
+        std::uint8_t time_remaining = 120;
         Field();
         void add_robot(Robot robot);
-        std::unordered_set<Action> legal_actions(int i);
+        std::vector<Action> legal_actions(int i);
         Field perform_action(int i, Action a);
         std::array<int, 2> calculate_scores();
     };

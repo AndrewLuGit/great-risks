@@ -17,6 +17,14 @@ if __name__ == "__main__":
         canvas.create_line([(1, i), (496, i)])
     def render(state):
         canvas.delete("elements")
+        for i in range(11):
+            for j in range(11):
+                red_rings = state["red_rings"][i][j]
+                blue_rings = state["blue_rings"][i][j]
+                if red_rings > 0:
+                    canvas.create_text(12 + 45 * j, 23 + 45 * i, text=str(red_rings), tags="elements", fill="red")
+                if blue_rings > 0:
+                    canvas.create_text(34 + 45 * j, 23 + 45 * i, text=str(blue_rings), tags="elements", fill="blue")
         canvas.create_text(23 + 45 * state["robots"][0]["y"], 23 + 45 * state["robots"][0]["x"], text="R", tags="elements")
         label_text = ""
         newline = '\n'
