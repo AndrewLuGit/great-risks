@@ -3,7 +3,7 @@
 #include <cmath>
 #include <iostream>
 
-#define NUM_ITERATIONS 10000
+#define NUM_ITERATIONS 225
 #define EXPLORATION_PARAM 1.41421
 
 namespace great_risks {
@@ -59,7 +59,7 @@ public:
                 std::uniform_int_distribution<uint32_t> uniform_dist(0, node->unexplored_actions.size() - 1);
                 auto selected_index = uniform_dist(rng);
                 child->action = node->unexplored_actions[selected_index];
-                child->state = node->state.perform_action(robot_index, node->unexplored_actions.back());
+                child->state = node->state.perform_action(robot_index, child->action);
                 node->unexplored_actions.erase(node->unexplored_actions.begin() + selected_index);
                 // do opponent action
                 child->state = child->state.perform_action(opp_index, greedy.next_action(child->state));
@@ -96,13 +96,11 @@ public:
         double highest_win_rate = 0.0;
         for (Node* &child : root->children) {
             double win_rate = child->wins / child->total;
-            std::cerr << "action: " << child->action << " win rate: " << win_rate << "\n";
             if (win_rate > highest_win_rate) {
                 highest_win_rate = win_rate;
                 selected_action = child->action;
             }
         }
-        std::cerr << "\n";
         delete root;
         return selected_action;
     }
