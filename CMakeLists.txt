@@ -45,6 +45,9 @@ list(APPEND GREAT_RISKS_SOURCES
   src/great_risks/simulator.cc
   src/great_risks/greedy_agent.cc
   src/great_risks/random_agent.cc
+  src/great_risks/reduced_game.cc
+  src/great_risks/greedy_agent_reduced.cc
+  src/great_risks/mcts_agent_reduced.cc
 )
 
 add_library(great_risks_lib
@@ -85,6 +88,20 @@ target_include_directories(agent_game
 )
 
 target_link_libraries(agent_game
+    PRIVATE
+    great_risks_lib
+    nlohmann_json::nlohmann_json
+)
+
+add_executable(agent_game_reduced
+  scripts/agent_game_reduced.cc
+)
+
+target_include_directories(agent_game_reduced
+    SYSTEM PRIVATE
+)
+
+target_link_libraries(agent_game_reduced
     PRIVATE
     great_risks_lib
     nlohmann_json::nlohmann_json
