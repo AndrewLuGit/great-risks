@@ -55,14 +55,15 @@ auto main(int argc, char**argv) -> int
     std::vector<ReducedAgent*> agents;
     agents.push_back(new MCTSAgentReduced(0, 1, time(NULL)));
     agents.push_back(new GreedyAgentReduced(1));
-    while (true) {
+    while (field.time_remaining > 0) {
         print_state();
         json j;
         std::cin >> j;
         for (int i = 0; i < agents.size(); i++) {
             auto action = agents[i]->next_action(field);
-            field = field.perform_action(i, action);
+            field.perform_action(i, action);
         }
         field.time_remaining--;
     }
+    print_state();
 }

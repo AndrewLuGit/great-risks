@@ -1,5 +1,7 @@
 #include "reduced_game.hh"
 
+#include <deque>
+
 namespace great_risks {
     ReducedField::ReducedField() {
         goals[0].x = 1;
@@ -90,7 +92,7 @@ namespace great_risks {
             result.push_back(MOVE_WEST);
         }
         uint8_t goal = NO_GOAL;
-        for (uint8_t i = 0; i < 3; i++) {
+        for (uint8_t i = 0; i < goals.size(); i++) {
             if (goals[i].x == robot.x && goals[i].y == robot.y) {
                 goal = i;
                 break;
@@ -151,9 +153,8 @@ namespace great_risks {
         return result;
     }
 
-    ReducedField ReducedField::perform_action(std::uint8_t i, Action a) {
-        ReducedField result = *this;
-        Robot &robot = result.robots[i];
+    void ReducedField::perform_action(std::uint8_t i, Action a) {
+        Robot &robot = robots[i];
         switch (a)
         {
         case MOVE_NORTH:
@@ -169,75 +170,74 @@ namespace great_risks {
             robot.y--;
             break;
         case GRAB_MOBILE_GOAL:
-            for (int i = 0; i < 5; i++) {
-                if (result.goals[i].x == robot.x && result.goals[i].y == robot.y) {
+            for (size_t i = 0; i < goals.size(); i++) {
+                if (goals[i].x == robot.x && goals[i].y == robot.y) {
                     robot.goal = i;
-                    result.goals[i].x = ON_ROBOT;
-                    result.goals[i].y = ON_ROBOT;
+                    goals[i].x = ON_ROBOT;
+                    goals[i].y = ON_ROBOT;
                 }
             }
             break;
         case RELEASE_MOBILE_GOAL:
-            result.goals[robot.goal].x = robot.x;
-            result.goals[robot.goal].y = robot.y;
+            goals[robot.goal].x = robot.x;
+            goals[robot.goal].y = robot.y;
             robot.goal = ON_ROBOT;
             break;
         case TIP_MOBILE_GOAL:
-            for (int i = 0; i < 5; i++) {
-                if (result.goals[i].x == robot.x && result.goals[i].y == robot.y) {
-                    result.goals[i].tipped = true;
+            for (size_t i = 0; i < goals.size(); i++) {
+                if (goals[i].x == robot.x && goals[i].y == robot.y) {
+                    goals[i].tipped = true;
                 }
             }
             break;
         case UNTIP_MOBILE_GOAL:
-            for (int i = 0; i < 5; i++) {
-                if (result.goals[i].x == robot.x && result.goals[i].y == robot.y) {
-                    result.goals[i].tipped = false;
+            for (size_t i = 0; i < goals.size(); i++) {
+                if (goals[i].x == robot.x && goals[i].y == robot.y) {
+                    goals[i].tipped = false;
                 }
             }
             break;
         case PICK_UP_RED:
-            result.red_rings[robot.x][robot.y]--;
+            red_rings[robot.x][robot.y]--;
             robot.rings.push_back(RED);
             break;
         case PICK_UP_BLUE:
-            result.blue_rings[robot.x][robot.y]--;
+            blue_rings[robot.x][robot.y]--;
             robot.rings.push_back(BLUE);
             break;
         case RELEASE_RING:
             if (robot.rings.back() == RED) {
-                result.red_rings[robot.x][robot.y]++;
+                red_rings[robot.x][robot.y]++;
             } else {
-                result.blue_rings[robot.x][robot.y]++;
+                blue_rings[robot.x][robot.y]++;
             }
             robot.rings.pop_back();
             break;
         case SCORE_MOBILE_GOAL:
-            result.goals[robot.goal].rings.push_back(robot.rings.front());
-            robot.rings.pop_front();
+            goals[robot.goal].rings.push_back(robot.rings.front());
+            robot.rings.erase(robot.rings.begin());
             break;
         case SCORE_WALL_STAKE:
-            for (WallStake &stake : result.stakes) {
+            for (WallStake &stake : stakes) {
                 if (stake.x == robot.x && stake.y == robot.y) {
                     stake.rings.push_back(robot.rings.front());
-                    robot.rings.pop_front();
+                    robot.rings.erase(robot.rings.begin());
                 }
             }
             break;
         case DESCORE_MOBILE_GOAL:
-            robot.rings.push_front(result.goals[robot.goal].rings.back());
-            result.goals[robot.goal].rings.pop_back();
+            robot.rings.insert(robot.rings.begin(), goals[robot.goal].rings.back());
+            goals[robot.goal].rings.pop_back();
             break;
         case DESCORE_WALL_STAKE:
-            for (WallStake &stake : result.stakes) {
+            for (WallStake &stake : stakes) {
                 if (stake.x == robot.x && stake.y == robot.y) {
-                    robot.rings.push_front(stake.rings.back());
+                    robot.rings.insert(robot.rings.begin(), stake.rings.back());
                     stake.rings.pop_back();
                 }
             }
             break;
         }
-        return result;
     }
 
     std::array<int, 2> ReducedField::calculate_scores() {

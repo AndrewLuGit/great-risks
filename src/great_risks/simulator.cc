@@ -1,5 +1,7 @@
 #include "simulator.hh"
 
+#include <deque>
+
 namespace great_risks
 {
     Field::Field()
@@ -271,24 +273,24 @@ namespace great_risks
             break;
         case SCORE_MOBILE_GOAL:
             result.goals[robot.goal].rings.push_back(robot.rings.front());
-            robot.rings.pop_front();
+            robot.rings.erase(robot.rings.begin());
             break;
         case SCORE_WALL_STAKE:
             for (WallStake &stake : result.stakes) {
                 if (stake.x == robot.x && stake.y == robot.y) {
                     stake.rings.push_back(robot.rings.front());
-                    robot.rings.pop_front();
+                    robot.rings.erase(robot.rings.begin());
                 }
             }
             break;
         case DESCORE_MOBILE_GOAL:
-            robot.rings.push_front(result.goals[robot.goal].rings.back());
+            robot.rings.insert(robot.rings.begin(), result.goals[robot.goal].rings.back());
             result.goals[robot.goal].rings.pop_back();
             break;
         case DESCORE_WALL_STAKE:
             for (WallStake &stake : result.stakes) {
                 if (stake.x == robot.x && stake.y == robot.y) {
-                    robot.rings.push_front(stake.rings.back());
+                    robot.rings.insert(robot.rings.begin(), robot.rings.back());
                     stake.rings.pop_back();
                 }
             }
