@@ -6,24 +6,31 @@
 #define NUM_ITERATIONS 10000
 #define EXPLORATION_PARAM 1.41421
 
-namespace great_risks {
-class Node {
-public:
-    double wins;
-    int total;
-    ReducedField state;
-    Action action;
-    bool is_opp;
-    Node *parent;
-    std::vector<Node*> children;
-    std::vector<Action> unexplored_actions;
-    ~Node() {
-        for (Node *node : children) {
-            delete node;
+namespace great_risks
+{
+    class Node
+    {
+    public:
+        double wins;
+        int total;
+        ReducedField state;
+        Action action;
+        bool is_opp;
+        Node *parent;
+        std::vector<Node *> children;
+        std::vector<Action> unexplored_actions;
+
+        ~Node()
+        {
+            for (Node *node : children)
+            {
+                delete node;
+            }
         }
-    }
-};
-    Action MCTSAgentReduced::next_action(ReducedField field) {
+    };
+
+    Action MCTSAgentReduced::next_action(ReducedField field)
+    {
         Node *root = new Node();
         root->wins = 0;
         root->total = 0;
@@ -31,16 +38,21 @@ public:
         root->is_opp = false;
         root->parent = nullptr;
         root->unexplored_actions = field.legal_actions(robot_index);
-        for (int i = 0; i < NUM_ITERATIONS; i++) {
+        for (int i = 0; i < NUM_ITERATIONS; i++)
+        {
             // selection: stop when node is not fully explored or it is terminal
             Node *node = root;
-            while (node->unexplored_actions.empty() && node->state.time_remaining > 0) {
+            while (node->unexplored_actions.empty() && node->state.time_remaining > 0)
+            {
                 double best_score = 0.0;
                 Node *best_child = node->children.front();
-                for (size_t i = 0; i < node->children.size(); i++) {
+                for (size_t i = 0; i < node->children.size(); i++)
+                {
                     Node *child = node->children[i];
-                    double score = child->wins / child->total + EXPLORATION_PARAM * sqrt(log(node->total) / child->total);
-                    if (score > best_score) {
+                    double score = child->wins / child->total +
+                                   EXPLORATION_PARAM * sqrt(log(node->total) / child->total);
+                    if (score > best_score)
+                    {
                         best_score = score;
                         best_child = child;
                     }
@@ -48,7 +60,8 @@ public:
                 node = best_child;
             }
             // expansion when non-terminal
-            if (node->state.time_remaining > 0) {
+            if (node->state.time_remaining > 0)
+            {
                 Node *child = new Node();
                 child->wins = 0;
                 child->total = 0;
@@ -72,12 +85,15 @@ public:
             // rollout
             ReducedField rollout = node->state;
             double reward = 0;
-            if (rollout_cache.find(rollout) != rollout_cache.end()) {
+            if (rollout_cache.find(rollout) != rollout_cache.end())
+            {
                 reward = rollout_cache.at(rollout);
             }
-            else {
+            else
+            {
                 GreedyAgentReduced self_greedy(robot_index);
-                while (rollout.time_remaining > 0) {
+                while (rollout.time_remaining > 0)
+                {
                     Action self_action = self_greedy.next_action(rollout);
                     rollout.perform_action(robot_index, self_action);
                     Action opp_action = greedy.next_action(rollout);
@@ -85,15 +101,19 @@ public:
                     rollout.time_remaining--;
                 }
                 auto [score, opp_score] = rollout.calculate_scores();
-                if (score > opp_score) {
+                if (score > opp_score)
+                {
                     reward = 1;
-                } else if (score == opp_score) {
+                }
+                else if (score == opp_score)
+                {
                     reward = 0.5;
                 }
                 rollout_cache.insert_or_assign(node->state, reward);
             }
             // backpropagation
-            while (node) {
+            while (node)
+            {
                 node->total++;
                 node->wins += reward;
                 node = node->parent;
@@ -101,9 +121,11 @@ public:
         }
         Action selected_action = root->children[0]->action;
         double highest_win_rate = 0.0;
-        for (Node* &child : root->children) {
+        for (Node *&child : root->children)
+        {
             double win_rate = child->wins / child->total;
-            if (win_rate > highest_win_rate) {
+            if (win_rate > highest_win_rate)
+            {
                 highest_win_rate = win_rate;
                 selected_action = child->action;
             }
@@ -111,4 +133,4 @@ public:
         delete root;
         return selected_action;
     }
-}
+}  // namespace great_risks

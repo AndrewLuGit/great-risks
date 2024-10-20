@@ -113,17 +113,22 @@ namespace great_risks
         return true;
     }
 
-    bool in_protected_corner(int x, int y, int time_remaining) {
+    bool in_protected_corner(int x, int y, int time_remaining)
+    {
         return time_remaining <= 15 && x == 10 && (y == 0 || y == 10);
     }
 
-    std::uint8_t can_interact_with_goal(int x, int y, Field &field) {
+    std::uint8_t can_interact_with_goal(int x, int y, Field &field)
+    {
         // cannot interact with positive corners during endgame
-        if (in_protected_corner(x, y, field.time_remaining)) {
+        if (in_protected_corner(x, y, field.time_remaining))
+        {
             return NO_GOAL;
         }
-        for (int i = 0; i < 5; i++) {
-            if (field.goals[i].x == x && field.goals[i].y == y) {
+        for (int i = 0; i < 5; i++)
+        {
+            if (field.goals[i].x == x && field.goals[i].y == y)
+            {
                 return i;
             }
         }
@@ -210,149 +215,198 @@ namespace great_risks
         return result;
     }
 
-    Field Field::perform_action(std::uint8_t i, Action a) {
+    Field Field::perform_action(std::uint8_t i, Action a)
+    {
         Field result = *this;
         Robot &robot = result.robots[i];
         switch (a)
         {
-        case MOVE_NORTH:
-            robot.x--;
-            break;
-        case MOVE_SOUTH:
-            robot.x++;
-            break;
-        case MOVE_EAST:
-            robot.y++;
-            break;
-        case MOVE_WEST:
-            robot.y--;
-            break;
-        case GRAB_MOBILE_GOAL:
-            for (int i = 0; i < 5; i++) {
-                if (result.goals[i].x == robot.x && result.goals[i].y == robot.y) {
-                    robot.goal = i;
-                    result.goals[i].x = ON_ROBOT;
-                    result.goals[i].y = ON_ROBOT;
+            case MOVE_NORTH:
+                robot.x--;
+                break;
+            case MOVE_SOUTH:
+                robot.x++;
+                break;
+            case MOVE_EAST:
+                robot.y++;
+                break;
+            case MOVE_WEST:
+                robot.y--;
+                break;
+            case GRAB_MOBILE_GOAL:
+                for (int i = 0; i < 5; i++)
+                {
+                    if (result.goals[i].x == robot.x && result.goals[i].y == robot.y)
+                    {
+                        robot.goal = i;
+                        result.goals[i].x = ON_ROBOT;
+                        result.goals[i].y = ON_ROBOT;
+                    }
                 }
-            }
-            break;
-        case RELEASE_MOBILE_GOAL:
-            result.goals[robot.goal].x = robot.x;
-            result.goals[robot.goal].y = robot.y;
-            robot.goal = ON_ROBOT;
-            break;
-        case TIP_MOBILE_GOAL:
-            for (int i = 0; i < 5; i++) {
-                if (result.goals[i].x == robot.x && result.goals[i].y == robot.y) {
-                    result.goals[i].tipped = true;
+                break;
+            case RELEASE_MOBILE_GOAL:
+                result.goals[robot.goal].x = robot.x;
+                result.goals[robot.goal].y = robot.y;
+                robot.goal = ON_ROBOT;
+                break;
+            case TIP_MOBILE_GOAL:
+                for (int i = 0; i < 5; i++)
+                {
+                    if (result.goals[i].x == robot.x && result.goals[i].y == robot.y)
+                    {
+                        result.goals[i].tipped = true;
+                    }
                 }
-            }
-            break;
-        case UNTIP_MOBILE_GOAL:
-            for (int i = 0; i < 5; i++) {
-                if (result.goals[i].x == robot.x && result.goals[i].y == robot.y) {
-                    result.goals[i].tipped = false;
+                break;
+            case UNTIP_MOBILE_GOAL:
+                for (int i = 0; i < 5; i++)
+                {
+                    if (result.goals[i].x == robot.x && result.goals[i].y == robot.y)
+                    {
+                        result.goals[i].tipped = false;
+                    }
                 }
-            }
-            break;
-        case PICK_UP_RED:
-            result.red_rings[robot.x][robot.y]--;
-            robot.rings.push_back(RED);
-            break;
-        case PICK_UP_BLUE:
-            result.blue_rings[robot.x][robot.y]--;
-            robot.rings.push_back(BLUE);
-            break;
-        case RELEASE_RING:
-            if (robot.rings.back() == RED) {
-                result.red_rings[robot.x][robot.y]++;
-            } else {
-                result.blue_rings[robot.x][robot.y]++;
-            }
-            robot.rings.pop_back();
-            break;
-        case SCORE_MOBILE_GOAL:
-            result.goals[robot.goal].rings.push_back(robot.rings.front());
-            robot.rings.erase(robot.rings.begin());
-            break;
-        case SCORE_WALL_STAKE:
-            for (WallStake &stake : result.stakes) {
-                if (stake.x == robot.x && stake.y == robot.y) {
-                    stake.rings.push_back(robot.rings.front());
-                    robot.rings.erase(robot.rings.begin());
+                break;
+            case PICK_UP_RED:
+                result.red_rings[robot.x][robot.y]--;
+                robot.rings.push_back(RED);
+                break;
+            case PICK_UP_BLUE:
+                result.blue_rings[robot.x][robot.y]--;
+                robot.rings.push_back(BLUE);
+                break;
+            case RELEASE_RING:
+                if (robot.rings.back() == RED)
+                {
+                    result.red_rings[robot.x][robot.y]++;
                 }
-            }
-            break;
-        case DESCORE_MOBILE_GOAL:
-            robot.rings.insert(robot.rings.begin(), result.goals[robot.goal].rings.back());
-            result.goals[robot.goal].rings.pop_back();
-            break;
-        case DESCORE_WALL_STAKE:
-            for (WallStake &stake : result.stakes) {
-                if (stake.x == robot.x && stake.y == robot.y) {
-                    robot.rings.insert(robot.rings.begin(), robot.rings.back());
-                    stake.rings.pop_back();
+                else
+                {
+                    result.blue_rings[robot.x][robot.y]++;
                 }
-            }
-            break;
+                robot.rings.pop_back();
+                break;
+            case SCORE_MOBILE_GOAL:
+                result.goals[robot.goal].rings.push_back(robot.rings.front());
+                robot.rings.erase(robot.rings.begin());
+                break;
+            case SCORE_WALL_STAKE:
+                for (WallStake &stake : result.stakes)
+                {
+                    if (stake.x == robot.x && stake.y == robot.y)
+                    {
+                        stake.rings.push_back(robot.rings.front());
+                        robot.rings.erase(robot.rings.begin());
+                    }
+                }
+                break;
+            case DESCORE_MOBILE_GOAL:
+                robot.rings.insert(robot.rings.begin(), result.goals[robot.goal].rings.back());
+                result.goals[robot.goal].rings.pop_back();
+                break;
+            case DESCORE_WALL_STAKE:
+                for (WallStake &stake : result.stakes)
+                {
+                    if (stake.x == robot.x && stake.y == robot.y)
+                    {
+                        robot.rings.insert(robot.rings.begin(), robot.rings.back());
+                        stake.rings.pop_back();
+                    }
+                }
+                break;
         }
         return result;
     }
 
-    std::array<int, 2> Field::calculate_scores() {
+    std::array<int, 2> Field::calculate_scores()
+    {
         int red_score = 0;
         int blue_score = 0;
-        for (MobileGoal &goal: goals) {
-            if (!goal.rings.empty()) {
+        for (MobileGoal &goal : goals)
+        {
+            if (!goal.rings.empty())
+            {
                 int multiplier = 1;
-                if (goal.x == 0 && (goal.y == 0 || goal.y == 10)) {
+                if (goal.x == 0 && (goal.y == 0 || goal.y == 10))
+                {
                     multiplier = -1;
-                } else if (goal.x == 10 && (goal.y == 0 || goal.y == 10)) {
+                }
+                else if (goal.x == 10 && (goal.y == 0 || goal.y == 10))
+                {
                     multiplier = 2;
                 }
-                for (auto &c : goal.rings) {
-                    if (c == RED) {
+                for (auto &c : goal.rings)
+                {
+                    if (c == RED)
+                    {
                         red_score += multiplier;
-                    } else {
+                    }
+                    else
+                    {
                         blue_score += multiplier;
                     }
                 }
-                if (goal.rings.back() == RED) {
+                if (goal.rings.back() == RED)
+                {
                     red_score += 2 * multiplier;
-                } else {
+                }
+                else
+                {
                     blue_score += 2 * multiplier;
                 }
             }
         }
-        for (WallStake &stake : stakes) {
-            if (!stake.rings.empty()) {
-                for (auto &c : stake.rings) {
-                    if (c == RED) {
+        for (WallStake &stake : stakes)
+        {
+            if (!stake.rings.empty())
+            {
+                for (auto &c : stake.rings)
+                {
+                    if (c == RED)
+                    {
                         red_score += 1;
-                    } else {
+                    }
+                    else
+                    {
                         blue_score += 1;
                     }
                 }
-                if (stake.rings.back() == RED) {
+                if (stake.rings.back() == RED)
+                {
                     red_score += 2;
-                } else {
+                }
+                else
+                {
                     blue_score += 2;
                 }
             }
         }
-        if (red_score < 0) red_score = 0;
-        if (blue_score < 0) blue_score = 0;
+        if (red_score < 0)
+        {
+            red_score = 0;
+        }
+        if (blue_score < 0)
+        {
+            blue_score = 0;
+        }
         return {red_score, blue_score};
     }
-    std::pair<std::array<std::uint8_t, 2>, std::vector<Action>> Field::shortest_path(std::array<std::uint8_t, 2> begin, std::unordered_set<std::array<std::uint8_t, 2>> targets, bool is_red) {
+
+    std::pair<std::array<std::uint8_t, 2>, std::vector<Action>> Field::shortest_path(
+        std::array<std::uint8_t, 2> begin,
+        std::unordered_set<std::array<std::uint8_t, 2>> targets,
+        bool is_red)
+    {
         std::unordered_set<std::array<std::uint8_t, 2>> explored;
         std::deque<std::pair<std::array<std::uint8_t, 2>, std::vector<Action>>> queue;
         queue.push_back({begin, std::vector<Action>()});
         explored.insert(begin);
-        while (!queue.empty()) {
+        while (!queue.empty())
+        {
             auto v = queue.front();
             queue.pop_front();
-            if (targets.find(v.first) != targets.end()) {
+            if (targets.find(v.first) != targets.end())
+            {
                 return v;
             }
             auto x = v.first[0];
