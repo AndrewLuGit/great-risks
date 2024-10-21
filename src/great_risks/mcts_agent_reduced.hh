@@ -1,3 +1,5 @@
+#pragma once
+
 #include "reduced_game.hh"
 #include "greedy_agent_reduced.hh"
 

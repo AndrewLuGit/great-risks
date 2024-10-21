@@ -48,6 +48,8 @@ list(APPEND GREAT_RISKS_SOURCES
   src/great_risks/reduced_game.cc
   src/great_risks/greedy_agent_reduced.cc
   src/great_risks/mcts_agent_reduced.cc
+  src/great_risks/mcts_agent_greedy.cc
+  src/great_risks/mcts_agent_random.cc
 )
 
 add_library(great_risks_lib

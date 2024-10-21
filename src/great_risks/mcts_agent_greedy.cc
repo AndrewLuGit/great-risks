@@ -1,6 +1,4 @@
-#include "mcts_agent_reduced.hh"
-
-#include <cmath>
+#include "mcts_agent_greedy.hh"
 
 #define NUM_ITERATIONS 10000
 #define EXPLORATION_PARAM 1.41421
@@ -12,7 +10,7 @@ namespace great_risks
     public:
         double wins;
         int total;
-        ReducedField state;
+        Field state;
         Action action;
         Node *parent;
         std::vector<Node *> children;
@@ -27,7 +25,7 @@ namespace great_risks
         }
     };
 
-    Action MCTSAgentReduced::next_action(ReducedField field)
+    Action MCTSAgentGreedy::next_action(Field field)
     {
         Node *root = new Node();
         root->wins = 0;
@@ -71,7 +69,7 @@ namespace great_risks
                 child->state.perform_action(robot_index, child->action);
                 node->unexplored_actions.erase(node->unexplored_actions.begin() + selected_index);
                 // do opponent action
-                Action opp_action = greedy.next_action(child->state);
+                Action opp_action = opp_greedy.next_action(child->state);
                 child->state.perform_action(opp_index, opp_action);
                 // decrement time
                 child->state.time_remaining--;
@@ -81,7 +79,7 @@ namespace great_risks
                 node = child;
             }
             // rollout
-            ReducedField rollout = node->state;
+            Field rollout = node->state;
             double reward = 0;
             if (rollout_cache.find(rollout) != rollout_cache.end())
             {
@@ -89,12 +87,12 @@ namespace great_risks
             }
             else
             {
-                GreedyAgentReduced self_greedy(robot_index);
+                GreedyAgent self_greedy(robot_index);
                 while (rollout.time_remaining > 0)
                 {
                     Action self_action = self_greedy.next_action(rollout);
                     rollout.perform_action(robot_index, self_action);
-                    Action opp_action = greedy.next_action(rollout);
+                    Action opp_action = opp_greedy.next_action(rollout);
                     rollout.perform_action(opp_index, opp_action);
                     rollout.time_remaining--;
                 }

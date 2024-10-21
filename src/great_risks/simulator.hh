@@ -101,21 +101,32 @@ namespace great_risks
     class Field
     {
     public:
-        MobileGoal goals[5];
-        WallStake stakes[2];
-        std::uint8_t red_rings[11][11] = {};
-        std::uint8_t blue_rings[11][11] = {};
+        std::array<MobileGoal, 5> goals;
+        std::array<WallStake, 2> stakes;
+        std::array<std::array<uint8_t, 11>, 11> red_rings = {};
+        std::array<std::array<uint8_t, 11>, 11> blue_rings = {};
         std::vector<Robot> robots;
         std::uint8_t time_remaining = 120;
         Field();
         void add_robot(Robot robot);
         std::vector<Action> legal_actions(std::uint8_t i);
-        Field perform_action(std::uint8_t i, Action a);
+        void perform_action(std::uint8_t i, Action a);
         std::array<int, 2> calculate_scores();
         std::pair<std::array<std::uint8_t, 2>, std::vector<Action>> shortest_path(
             std::array<std::uint8_t, 2> begin,
             std::unordered_set<std::array<std::uint8_t, 2>> targets,
             bool is_red);
+
+        bool operator==(const Field &other) const
+        {
+            return (
+                time_remaining == other.time_remaining &&
+                std::equal(goals.begin(), goals.end(), other.goals.begin()) &&
+                std::equal(stakes.begin(), stakes.end(), other.stakes.begin()) &&
+                std::equal(robots.begin(), robots.end(), other.robots.begin()) &&
+                std::equal(red_rings.begin(), red_rings.end(), other.red_rings.begin()) &&
+                std::equal(blue_rings.begin(), blue_rings.end(), other.blue_rings.begin()));
+        }
     };
 
     bool in_protected_corner(int x, int y, int time_remaining);

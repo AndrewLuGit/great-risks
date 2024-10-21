@@ -1,8 +1,6 @@
-#include "mcts_agent_reduced.hh"
+#include "mcts_agent_random.hh"
 
-#include <cmath>
-
-#define NUM_ITERATIONS 10000
+#define NUM_ITERATIONS 100000
 #define EXPLORATION_PARAM 1.41421
 
 namespace great_risks
@@ -12,31 +10,32 @@ namespace great_risks
     public:
         double wins;
         int total;
-        ReducedField state;
+        Field state;
         Action action;
+        uint8_t robot_index;
         Node *parent;
         std::vector<Node *> children;
         std::vector<Action> unexplored_actions;
 
         ~Node()
         {
-            for (Node *node : children)
+            for (auto &node : children)
             {
                 delete node;
             }
         }
     };
 
-    Action MCTSAgentReduced::next_action(ReducedField field)
+    Action MCTSAgentRandom::next_action(Field field)
     {
         Node *root = new Node();
         root->wins = 0;
         root->total = 0;
         root->state = field;
-        bool is_red = field.robots[robot_index].is_red;
+        root->robot_index = robot_index;
         root->parent = nullptr;
         root->unexplored_actions = field.legal_actions(robot_index);
-        for (int i = 0; i < NUM_ITERATIONS; i++)
+        for (size_t i = 0; i < NUM_ITERATIONS; i++)
         {
             // selection: stop when node is not fully explored or it is terminal
             Node *node = root;
@@ -57,63 +56,64 @@ namespace great_risks
                 }
                 node = best_child;
             }
-            // expansion when non-terminal
+            // expansion
             if (node->state.time_remaining > 0)
             {
                 Node *child = new Node();
                 child->wins = 0;
                 child->total = 0;
-                // do agent action
                 std::uniform_int_distribution<uint32_t> uniform_dist(0, node->unexplored_actions.size() - 1);
                 auto selected_index = uniform_dist(rng);
                 child->state = node->state;
                 child->action = node->unexplored_actions[selected_index];
-                child->state.perform_action(robot_index, child->action);
+                child->state.perform_action(node->robot_index, child->action);
                 node->unexplored_actions.erase(node->unexplored_actions.begin() + selected_index);
-                // do opponent action
-                Action opp_action = greedy.next_action(child->state);
-                child->state.perform_action(opp_index, opp_action);
-                // decrement time
-                child->state.time_remaining--;
+                child->robot_index = (node->robot_index + 1) % node->state.robots.size();
+                child->unexplored_actions = child->state.legal_actions(child->robot_index);
+                if (child->robot_index == 0)
+                {
+                    child->state.time_remaining--;
+                }
                 child->parent = node;
                 node->children.push_back(child);
-                child->unexplored_actions = child->state.legal_actions(robot_index);
                 node = child;
             }
             // rollout
-            ReducedField rollout = node->state;
-            double reward = 0;
-            if (rollout_cache.find(rollout) != rollout_cache.end())
+            Field rollout = node->state;
+            uint8_t index = node->robot_index;
+            while (rollout.time_remaining > 0)
             {
-                reward = rollout_cache.at(rollout);
-            }
-            else
-            {
-                GreedyAgentReduced self_greedy(robot_index);
-                while (rollout.time_remaining > 0)
+                auto legal_actions = rollout.legal_actions(index);
+                std::uniform_int_distribution<uint32_t> uniform_dist(0, legal_actions.size() - 1);
+                rollout.perform_action(index, legal_actions[uniform_dist(rng)]);
+                index = (index + 1) % rollout.robots.size();
+                if (index == 0)
                 {
-                    Action self_action = self_greedy.next_action(rollout);
-                    rollout.perform_action(robot_index, self_action);
-                    Action opp_action = greedy.next_action(rollout);
-                    rollout.perform_action(opp_index, opp_action);
                     rollout.time_remaining--;
                 }
-                auto [red_score, blue_score] = rollout.calculate_scores();
-                if ((is_red && red_score > blue_score) || (!is_red && blue_score > red_score))
-                {
-                    reward = 1;
-                }
-                else if (blue_score == red_score)
-                {
-                    reward = 0.5;
-                }
-                rollout_cache.insert_or_assign(node->state, reward);
+            }
+            auto [red_score, blue_score] = rollout.calculate_scores();
+            double red_reward = 0;
+            if (red_score > blue_score)
+            {
+                red_reward = 1;
+            }
+            else if (red_score == blue_score)
+            {
+                red_reward = 0.5;
             }
             // backpropagation
             while (node)
             {
                 node->total++;
-                node->wins += reward;
+                if (node->state.robots[node->robot_index].is_red)
+                {
+                    node->wins += red_reward;
+                }
+                else
+                {
+                    node->wins += 1 - red_reward;
+                }
                 node = node->parent;
             }
         }

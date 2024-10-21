@@ -125,7 +125,7 @@ namespace great_risks
         {
             return NO_GOAL;
         }
-        for (int i = 0; i < 5; i++)
+        for (size_t i = 0; i < field.goals.size(); i++)
         {
             if (field.goals[i].x == x && field.goals[i].y == y)
             {
@@ -215,10 +215,9 @@ namespace great_risks
         return result;
     }
 
-    Field Field::perform_action(std::uint8_t i, Action a)
+    void Field::perform_action(std::uint8_t i, Action a)
     {
-        Field result = *this;
-        Robot &robot = result.robots[i];
+        Robot &robot = robots[i];
         switch (a)
         {
             case MOVE_NORTH:
@@ -234,64 +233,64 @@ namespace great_risks
                 robot.y--;
                 break;
             case GRAB_MOBILE_GOAL:
-                for (int i = 0; i < 5; i++)
+                for (size_t i = 0; i < goals.size(); i++)
                 {
-                    if (result.goals[i].x == robot.x && result.goals[i].y == robot.y)
+                    if (goals[i].x == robot.x && goals[i].y == robot.y)
                     {
                         robot.goal = i;
-                        result.goals[i].x = ON_ROBOT;
-                        result.goals[i].y = ON_ROBOT;
+                        goals[i].x = ON_ROBOT;
+                        goals[i].y = ON_ROBOT;
                     }
                 }
                 break;
             case RELEASE_MOBILE_GOAL:
-                result.goals[robot.goal].x = robot.x;
-                result.goals[robot.goal].y = robot.y;
+                goals[robot.goal].x = robot.x;
+                goals[robot.goal].y = robot.y;
                 robot.goal = ON_ROBOT;
                 break;
             case TIP_MOBILE_GOAL:
-                for (int i = 0; i < 5; i++)
+                for (size_t i = 0; i < goals.size(); i++)
                 {
-                    if (result.goals[i].x == robot.x && result.goals[i].y == robot.y)
+                    if (goals[i].x == robot.x && goals[i].y == robot.y)
                     {
-                        result.goals[i].tipped = true;
+                        goals[i].tipped = true;
                     }
                 }
                 break;
             case UNTIP_MOBILE_GOAL:
-                for (int i = 0; i < 5; i++)
+                for (size_t i = 0; i < goals.size(); i++)
                 {
-                    if (result.goals[i].x == robot.x && result.goals[i].y == robot.y)
+                    if (goals[i].x == robot.x && goals[i].y == robot.y)
                     {
-                        result.goals[i].tipped = false;
+                        goals[i].tipped = false;
                     }
                 }
                 break;
             case PICK_UP_RED:
-                result.red_rings[robot.x][robot.y]--;
+                red_rings[robot.x][robot.y]--;
                 robot.rings.push_back(RED);
                 break;
             case PICK_UP_BLUE:
-                result.blue_rings[robot.x][robot.y]--;
+                blue_rings[robot.x][robot.y]--;
                 robot.rings.push_back(BLUE);
                 break;
             case RELEASE_RING:
                 if (robot.rings.back() == RED)
                 {
-                    result.red_rings[robot.x][robot.y]++;
+                    red_rings[robot.x][robot.y]++;
                 }
                 else
                 {
-                    result.blue_rings[robot.x][robot.y]++;
+                    blue_rings[robot.x][robot.y]++;
                 }
                 robot.rings.pop_back();
                 break;
             case SCORE_MOBILE_GOAL:
-                result.goals[robot.goal].rings.push_back(robot.rings.front());
+                goals[robot.goal].rings.push_back(robot.rings.front());
                 robot.rings.erase(robot.rings.begin());
                 break;
             case SCORE_WALL_STAKE:
-                for (WallStake &stake : result.stakes)
+                for (WallStake &stake : stakes)
                 {
                     if (stake.x == robot.x && stake.y == robot.y)
                     {
@@ -301,21 +300,20 @@ namespace great_risks
                 }
                 break;
             case DESCORE_MOBILE_GOAL:
-                robot.rings.insert(robot.rings.begin(), result.goals[robot.goal].rings.back());
-                result.goals[robot.goal].rings.pop_back();
+                robot.rings.insert(robot.rings.begin(), goals[robot.goal].rings.back());
+                goals[robot.goal].rings.pop_back();
                 break;
             case DESCORE_WALL_STAKE:
-                for (WallStake &stake : result.stakes)
+                for (WallStake &stake : stakes)
                 {
                     if (stake.x == robot.x && stake.y == robot.y)
                     {
-                        robot.rings.insert(robot.rings.begin(), robot.rings.back());
+                        robot.rings.insert(robot.rings.begin(), stake.rings.back());
                         stake.rings.pop_back();
                     }
                 }
                 break;
         }
-        return result;
     }
 
     std::array<int, 2> Field::calculate_scores()
