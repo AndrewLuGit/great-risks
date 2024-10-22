@@ -1,6 +1,9 @@
 #include "mcts_agent_random.hh"
 
-#define NUM_ITERATIONS 100000
+#include <iostream>
+#include <queue>
+
+#define NUM_ITERATIONS 10000
 #define EXPLORATION_PARAM 1.41421
 
 namespace great_risks
@@ -128,6 +131,18 @@ namespace great_risks
                 selected_action = child->action;
             }
         }
+        /*
+        std::queue<Node*> bfs_queue;
+        bfs_queue.push(root);
+        while (!bfs_queue.empty()) {
+            Node* node = bfs_queue.front();
+            bfs_queue.pop();
+            std::cerr << "wins: " << node->wins << " total: " << node->total << " Action: " << node->action << " index: " << static_cast<int>(node->robot_index) << "\n";
+            for (auto &child : node->children) {
+                bfs_queue.push(child);
+            }
+        }
+        */
         delete root;
         return selected_action;
     }

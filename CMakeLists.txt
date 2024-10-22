@@ -109,6 +109,19 @@ target_link_libraries(agent_game_reduced
     nlohmann_json::nlohmann_json
 )
 
+add_executable(tournament
+  scripts/tournament.cc
+)
+
+target_include_directories(tournament
+    SYSTEM PRIVATE
+)
+
+target_link_libraries(tournament
+    PRIVATE
+    great_risks_lib
+)
+
 # install(
 #   TARGETS great_risks_lib
 #   LIBRARY
