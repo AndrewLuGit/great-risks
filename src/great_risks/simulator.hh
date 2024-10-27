@@ -109,13 +109,13 @@ namespace great_risks
         std::uint8_t time_remaining = 120;
         Field();
         void add_robot(Robot robot);
-        std::vector<Action> legal_actions(std::uint8_t i);
+        std::vector<Action> legal_actions(std::uint8_t i) const;
         void perform_action(std::uint8_t i, Action a);
-        std::array<int, 2> calculate_scores();
+        std::array<int, 2> calculate_scores() const;
         std::pair<std::array<std::uint8_t, 2>, std::vector<Action>> shortest_path(
             std::array<std::uint8_t, 2> begin,
             std::unordered_set<std::array<std::uint8_t, 2>> targets,
-            bool is_red);
+            bool is_red) const;
 
         bool operator==(const Field &other) const
         {

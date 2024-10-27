@@ -28,8 +28,8 @@ void run_match() {
     field.add_robot(robot_2);
     std::vector<Agent *> agents;
     mtx.lock();
-    agents.push_back(new MCTSAgentRandom(0));
-    agents.push_back(new MCTSAgentRandom(1));
+    agents.push_back(new MCTSAgentRandom(0, rand()));
+    agents.push_back(new GreedyAgent(1));
     mtx.unlock();
     while (field.time_remaining > 0) {
         for (size_t i = 0; i < agents.size(); i++)

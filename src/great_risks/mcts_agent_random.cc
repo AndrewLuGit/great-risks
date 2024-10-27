@@ -12,7 +12,7 @@ namespace great_risks
     class Node
     {
     public:
-        double wins;
+        float wins;
         int total;
         Field state;
         Action action;
@@ -48,12 +48,12 @@ namespace great_risks
             Node *node = root;
             while (node->unexplored_actions.empty() && node->state.time_remaining > 0)
             {
-                double best_score = 0.0;
+                float best_score = 0.0;
                 Node *best_child = node->children.front();
                 for (size_t i = 0; i < node->children.size(); i++)
                 {
                     Node *child = node->children[i];
-                    double score = child->wins / child->total +
+                    float score = child->wins / child->total +
                                    EXPLORATION_PARAM * sqrt(log(node->total) / child->total);
                     if (score > best_score)
                     {
@@ -112,6 +112,8 @@ namespace great_risks
                     }
                     rand -= weights[i];
                 }
+                //std::uniform_int_distribution<uint32_t> uniform_dist(0, legal_actions.size() - 1);
+                //Action chosen_action = legal_actions[uniform_dist(rng)];
                 rollout.perform_action(index, chosen_action);
                 index = (index + 1) % rollout.robots.size();
                 if (index == 0)
@@ -120,35 +122,31 @@ namespace great_risks
                 }
             }
             auto [red_score, blue_score] = rollout.calculate_scores();
-            double red_reward = 0;
-            if (red_score > blue_score)
-            {
-                red_reward = 1;
-            }
-            else if (red_score == blue_score)
-            {
-                red_reward = 0.5;
-            }
+            float red_reward = 1 - exp(0.1 * (blue_score - red_score));
+            float blue_reward = 1 - exp(0.1 * (red_score - blue_score));
+            if (red_reward < 0) red_reward = 0;
+            if (blue_reward < 0) blue_reward = 0;
             // backpropagation
-            while (node)
+            while (node->parent)
             {
                 node->total++;
-                if (node->state.robots[node->robot_index].is_red)
+                if (node->state.robots[node->parent->robot_index].is_red)
                 {
                     node->wins += red_reward;
                 }
                 else
                 {
-                    node->wins += 1 - red_reward;
+                    node->wins += blue_reward;
                 }
                 node = node->parent;
             }
+            root->total++;
         }
         Action selected_action = root->children[0]->action;
-        double highest_win_rate = 0.0;
+        float highest_win_rate = 0.0;
         for (Node *&child : root->children)
         {
-            double win_rate = 1 - (child->wins / child->total);
+            float win_rate = child->wins / child->total;
             if (win_rate > highest_win_rate)
             {
                 highest_win_rate = win_rate;

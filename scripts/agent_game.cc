@@ -68,13 +68,13 @@ auto main(int argc, char **argv) -> int
     robot_4.is_red = false;
     field.add_robot(robot_4);
     std::vector<Agent *> agents;
-    agents.push_back(new MCTSAgentRandom(0, time(NULL)));
+    agents.push_back(new MCTSAgentGreedy(0, 1, time(NULL)));
     agents.push_back(new GreedyAgent(1));
     while (field.time_remaining > 0)
     {
         print_state();
-        json j;
-        std::cin >> j;
+        //json j;
+        //std::cin >> j;
         for (size_t i = 0; i < agents.size(); i++)
         {
             auto action = agents[i]->next_action(field);

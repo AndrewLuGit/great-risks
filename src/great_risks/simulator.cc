@@ -63,10 +63,10 @@ namespace great_risks
 
     void Field::add_robot(Robot robot)
     {
-        robots.push_back(robot);
+        robots.emplace_back(robot);
     }
 
-    bool legal_move(int x, int y, bool is_red, Field &field)
+    bool legal_move(int x, int y, bool is_red, const Field &field)
     {
         if (x < 0 || x > 10)
         {
@@ -103,7 +103,7 @@ namespace great_risks
         {
             return false;
         }
-        for (Robot &robot : field.robots)
+        for (const Robot &robot : field.robots)
         {
             if (x == robot.x && y == robot.y)
             {
@@ -118,7 +118,7 @@ namespace great_risks
         return time_remaining <= 15 && x == 10 && (y == 0 || y == 10);
     }
 
-    std::uint8_t can_interact_with_goal(int x, int y, Field &field)
+    std::uint8_t can_interact_with_goal(int x, int y, const Field &field)
     {
         // cannot interact with positive corners during endgame
         if (in_protected_corner(x, y, field.time_remaining))
@@ -135,7 +135,7 @@ namespace great_risks
         return NO_GOAL;
     }
 
-    std::vector<Action> Field::legal_actions(std::uint8_t i)
+    std::vector<Action> Field::legal_actions(std::uint8_t i) const
     {
         Robot robot = robots[i];
         std::vector<Action> result;
@@ -198,7 +198,7 @@ namespace great_risks
         {
             result.push_back(RELEASE_RING);
         }
-        for (WallStake &stake : stakes)
+        for (const WallStake &stake : stakes)
         {
             if (robot.x == stake.x && robot.y == stake.y)
             {
@@ -316,11 +316,11 @@ namespace great_risks
         }
     }
 
-    std::array<int, 2> Field::calculate_scores()
+    std::array<int, 2> Field::calculate_scores() const
     {
         int red_score = 0;
         int blue_score = 0;
-        for (MobileGoal &goal : goals)
+        for (const MobileGoal &goal : goals)
         {
             if (!goal.rings.empty())
             {
@@ -354,7 +354,7 @@ namespace great_risks
                 }
             }
         }
-        for (WallStake &stake : stakes)
+        for (const WallStake &stake : stakes)
         {
             if (!stake.rings.empty())
             {
@@ -393,7 +393,7 @@ namespace great_risks
     std::pair<std::array<std::uint8_t, 2>, std::vector<Action>> Field::shortest_path(
         std::array<std::uint8_t, 2> begin,
         std::unordered_set<std::array<std::uint8_t, 2>> targets,
-        bool is_red)
+        bool is_red) const
     {
         std::unordered_set<std::array<std::uint8_t, 2>> explored;
         std::deque<std::pair<std::array<std::uint8_t, 2>, std::vector<Action>>> queue;
