@@ -1,10 +1,11 @@
 #include "mcts_agent_random.hh"
 
+#include <algorithm>
 #include <iostream>
 #include <queue>
 
-#define NUM_ITERATIONS 10000
-#define EXPLORATION_PARAM 1.41421
+constexpr size_t NUM_ITERATIONS = 10000;
+constexpr float EXPLORATION_PARAM = 1.41421;
 
 namespace great_risks
 {
@@ -19,7 +20,7 @@ namespace great_risks
         Node *parent;
         std::vector<Node *> children;
         std::vector<Action> unexplored_actions;
-
+/*
         ~Node()
         {
             for (auto &node : children)
@@ -27,17 +28,20 @@ namespace great_risks
                 delete node;
             }
         }
+        */
     };
 
     Action MCTSAgentRandom::next_action(Field field)
     {
-        Node *root = new Node();
+        std::array<Node, NUM_ITERATIONS + 1> nodes;
+        Node *root = &nodes[0];
         root->wins = 0;
         root->total = 0;
         root->state = field;
         root->robot_index = robot_index;
         root->parent = nullptr;
         root->unexplored_actions = field.legal_actions(robot_index);
+        std::shuffle(root->unexplored_actions.begin(), root->unexplored_actions.end(), rng);
         for (size_t i = 0; i < NUM_ITERATIONS; i++)
         {
             // selection: stop when node is not fully explored or it is terminal
@@ -62,17 +66,16 @@ namespace great_risks
             // expansion
             if (node->state.time_remaining > 0)
             {
-                Node *child = new Node();
+                Node *child = &nodes[i + 1];
                 child->wins = 0;
                 child->total = 0;
-                std::uniform_int_distribution<uint32_t> uniform_dist(0, node->unexplored_actions.size() - 1);
-                auto selected_index = uniform_dist(rng);
                 child->state = node->state;
-                child->action = node->unexplored_actions[selected_index];
+                child->action = node->unexplored_actions.back();
                 child->state.perform_action(node->robot_index, child->action);
-                node->unexplored_actions.erase(node->unexplored_actions.begin() + selected_index);
+                node->unexplored_actions.pop_back();
                 child->robot_index = (node->robot_index + 1) % node->state.robots.size();
                 child->unexplored_actions = child->state.legal_actions(child->robot_index);
+                std::shuffle(child->unexplored_actions.begin(), child->unexplored_actions.end(), rng);
                 if (child->robot_index == 0)
                 {
                     child->state.time_remaining--;
@@ -87,8 +90,29 @@ namespace great_risks
             while (rollout.time_remaining > 0)
             {
                 auto legal_actions = rollout.legal_actions(index);
-                std::uniform_int_distribution<uint32_t> uniform_dist(0, legal_actions.size() - 1);
-                rollout.perform_action(index, legal_actions[uniform_dist(rng)]);
+                std::vector<uint8_t> weights;
+                uint8_t sum_weights = 0;
+                for (auto &action : legal_actions) {
+                    if (action == GRAB_MOBILE_GOAL || action == SCORE_MOBILE_GOAL || action == SCORE_WALL_STAKE) {
+                        weights.push_back(2);
+                    } else if ((rollout.robots[index].is_red && action == PICK_UP_RED) || (!rollout.robots[index].is_red && action == PICK_UP_BLUE)) {
+                        weights.push_back(2);
+                    } else {
+                        weights.push_back(1);
+                    }
+                    sum_weights += weights.back();
+                }
+                std::uniform_int_distribution<uint32_t> uniform_dist(0, sum_weights - 1);
+                auto rand = uniform_dist(rng);
+                Action chosen_action = legal_actions.back();
+                for (size_t i = 0; i < weights.size(); i++) {
+                    if (rand < weights[i]) {
+                        chosen_action = legal_actions[i];
+                        break;
+                    }
+                    rand -= weights[i];
+                }
+                rollout.perform_action(index, chosen_action);
                 index = (index + 1) % rollout.robots.size();
                 if (index == 0)
                 {
@@ -124,7 +148,7 @@ namespace great_risks
         double highest_win_rate = 0.0;
         for (Node *&child : root->children)
         {
-            double win_rate = child->wins / child->total;
+            double win_rate = 1 - (child->wins / child->total);
             if (win_rate > highest_win_rate)
             {
                 highest_win_rate = win_rate;
@@ -143,7 +167,6 @@ namespace great_risks
             }
         }
         */
-        delete root;
         return selected_action;
     }
 }  // namespace great_risks

@@ -2,13 +2,15 @@
 #include <great_risks/mcts_agent_greedy.hh>
 #include <great_risks/mcts_agent_random.hh>
 #include <ctime>
+#include <cstdlib>
 #include <iostream>
 #include <atomic>
 #include <thread>
 #include <mutex>
 
-double red_wins = 0;
-double blue_wins = 0;
+int red_wins = 0;
+int blue_wins = 0;
+int ties = 0;
 std::mutex mtx;
 using namespace great_risks;
 
@@ -25,8 +27,10 @@ void run_match() {
     robot_2.is_red = false;
     field.add_robot(robot_2);
     std::vector<Agent *> agents;
-    agents.push_back(new MCTSAgentGreedy(0, 1, time(NULL)));
-    agents.push_back(new GreedyAgent(1));
+    mtx.lock();
+    agents.push_back(new MCTSAgentRandom(0));
+    agents.push_back(new MCTSAgentRandom(1));
+    mtx.unlock();
     while (field.time_remaining > 0) {
         for (size_t i = 0; i < agents.size(); i++)
         {
@@ -37,18 +41,19 @@ void run_match() {
     }
     auto [red_score, blue_score] = field.calculate_scores();
     mtx.lock();
+    std::cout << "" << red_score << " " << blue_score << "\n";
     if (red_score > blue_score) {
-        red_wins = red_wins + 1;
+        red_wins++;
     } else if (red_score < blue_score) {
-        blue_wins = blue_wins + 1;
+        blue_wins++;
     } else {
-        red_wins += 0.5;
-        blue_wins += 0.5;
+        ties++;
     }
     mtx.unlock();
 }
 
 int main() {
+    srand(time(NULL));
     for (int i = 0; i < 100; i+= 10) {
         std::cout << "running match " << i << "\n";
         std::vector<std::thread> threads;
@@ -59,5 +64,5 @@ int main() {
             thread.join();
         }
     }
-    std::cout << "red wins: " << red_wins << " blue wins: " << blue_wins << "\n";
+    std::cout << "red wins: " << red_wins << " blue wins: " << blue_wins << " ties: " << ties << "\n";
 }
