@@ -12,7 +12,7 @@ namespace great_risks
         if (robot_state.goal == NO_GOAL)
         {
             std::unordered_set<std::array<std::uint8_t, 2>> grabbable_goals;
-            for (auto &goal : field.goals)
+            for (const auto &goal : field.goals)
             {
                 if (goal.x != ON_ROBOT && !in_protected_corner(goal.x, goal.y, field.time_remaining) &&
                     !goal.tipped && goal.rings.size() < 6)
@@ -45,7 +45,7 @@ namespace great_risks
             }
             bool left_corner_occupied = false;
             bool right_corner_occupied = false;
-            for (auto &goal : field.goals)
+            for (const auto &goal : field.goals)
             {
                 if (goal.x == 10 && goal.y == 0)
                 {

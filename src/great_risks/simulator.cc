@@ -334,7 +334,7 @@ namespace great_risks
                 {
                     multiplier = 2;
                 }
-                for (auto &c : goal.rings)
+                for (const auto &c : goal.rings)
                 {
                     if (c == RED)
                     {
@@ -359,7 +359,7 @@ namespace great_risks
         {
             if (!stake.rings.empty())
             {
-                for (auto &c : stake.rings)
+                for (const auto &c : stake.rings)
                 {
                     if (c == RED)
                     {

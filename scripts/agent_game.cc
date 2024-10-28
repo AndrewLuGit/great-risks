@@ -19,16 +19,16 @@ void print_state()
     json j;
     j["actions"] = last_actions;
     j["goals"] = json::array();
-    for (MobileGoal &goal : field.goals)
+    for (const MobileGoal &goal : field.goals)
     {
         j["goals"].push_back({{"x", goal.x}, {"y", goal.y}, {"rings", goal.rings}, {"tipped", goal.tipped}});
     }
     j["stakes"] = json::array();
-    for (WallStake &stake : field.stakes)
+    for (const WallStake &stake : field.stakes)
     {
         j["stakes"].push_back({{"rings", stake.rings}});
     }
-    for (Robot &robot : field.robots)
+    for (const Robot &robot : field.robots)
     {
         j["robots"].push_back(
             {{"x", robot.x},
@@ -54,16 +54,16 @@ auto main(int argc, char **argv) -> int
     robot_1.y = 0;
     robot_1.is_red = true;
     field.add_robot(robot_1);
-    Robot robot_2;
-    robot_2.x = 9;
-    robot_2.y = 0;
-    robot_1.is_red = true;
-    field.add_robot(robot_2);
-    Robot robot_3;
-    robot_3.x = 1;
-    robot_3.y = 10;
-    robot_3.is_red = false;
-    field.add_robot(robot_3);
+    // Robot robot_2;
+    // robot_2.x = 9;
+    // robot_2.y = 0;
+    // robot_1.is_red = true;
+    // field.add_robot(robot_2);
+    // Robot robot_3;
+    // robot_3.x = 1;
+    // robot_3.y = 10;
+    // robot_3.is_red = false;
+    // field.add_robot(robot_3);
     Robot robot_4;
     robot_4.x = 9;
     robot_4.y = 10;
@@ -72,9 +72,7 @@ auto main(int argc, char **argv) -> int
     std::vector<Agent *> agents;
     srand(time(NULL));
     agents.emplace_back(new MCTSAgentRandom(0, rand()));
-    agents.emplace_back(new MCTSAgentRandom(1, rand()));
-    agents.emplace_back(new MCTSAgentRandom(2, rand()));
-    agents.emplace_back(new MCTSAgentRandom(3, rand()));
+    agents.emplace_back(new GreedyAgent(1));
     while (field.time_remaining > 0)
     {
         print_state();

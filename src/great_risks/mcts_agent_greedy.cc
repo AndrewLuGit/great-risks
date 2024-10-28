@@ -91,6 +91,9 @@ namespace great_risks
             else
             {
                 GreedyAgent self_greedy(robot_index);
+                std::vector<Field> rollouts;
+                rollouts.reserve(rollout.time_remaining + 1);
+                rollouts.emplace_back(rollout);
                 while (rollout.time_remaining > 0)
                 {
                     Action self_action = self_greedy.next_action(rollout);
@@ -98,6 +101,7 @@ namespace great_risks
                     Action opp_action = opp_greedy.next_action(rollout);
                     rollout.perform_action(opp_index, opp_action);
                     rollout.time_remaining--;
+                    rollouts.emplace_back(rollout);
                 }
                 auto [red_score, blue_score] = rollout.calculate_scores();
                 if (is_red) {
@@ -106,6 +110,9 @@ namespace great_risks
                 } else {
                     reward = 1 - exp(0.1 * (red_score - blue_score));
                     if (reward < 0) reward = 0;
+                }
+                for (const auto &rollout : rollouts) {
+                    rollout_cache.insert_or_assign(rollout, reward);
                 }
                 rollout_cache.insert_or_assign(node->state, reward);
             }
@@ -119,7 +126,7 @@ namespace great_risks
         }
         Action selected_action = root->children[0]->action;
         double highest_win_rate = 0.0;
-        for (Node *&child : root->children)
+        for (const Node *const&child : root->children)
         {
             double win_rate = child->wins / child->total;
             if (win_rate > highest_win_rate)

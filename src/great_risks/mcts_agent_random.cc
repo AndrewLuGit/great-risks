@@ -92,7 +92,7 @@ namespace great_risks
                 auto legal_actions = rollout.legal_actions(index);
                 std::vector<uint8_t> weights;
                 uint8_t sum_weights = 0;
-                for (auto &action : legal_actions) {
+                for (const auto &action : legal_actions) {
                     if (action == GRAB_MOBILE_GOAL || action == SCORE_MOBILE_GOAL || action == SCORE_WALL_STAKE) {
                         weights.push_back(2);
                     } else if ((rollout.robots[index].is_red && action == PICK_UP_RED) || (!rollout.robots[index].is_red && action == PICK_UP_BLUE)) {
@@ -144,7 +144,7 @@ namespace great_risks
         }
         Action selected_action = root->children[0]->action;
         float highest_win_rate = 0.0;
-        for (Node *&child : root->children)
+        for (const Node *const&child : root->children)
         {
             float win_rate = child->wins / child->total;
             if (win_rate > highest_win_rate)

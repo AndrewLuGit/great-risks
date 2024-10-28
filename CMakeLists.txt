@@ -5,6 +5,9 @@ include(FetchContent)
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
 FetchContent_MakeAvailable(json)
 
+FetchContent_Declare(robin_map URL https://github.com/Tessil/robin-map/archive/refs/tags/v1.3.0.tar.gz)
+FetchContent_MakeAvailable(robin_map)
+
 option(FORCE_COLORED_OUTPUT "Always produce ANSI-colored output." ON)
 
 if(FORCE_COLORED_OUTPUT)
@@ -63,6 +66,7 @@ target_include_directories(great_risks_lib
 
 target_link_libraries(great_risks_lib
   PRIVATE
+  tsl::robin_map
 )
 
 
@@ -93,6 +97,7 @@ target_link_libraries(agent_game
     PRIVATE
     great_risks_lib
     nlohmann_json::nlohmann_json
+    tsl::robin_map
 )
 
 add_executable(agent_game_reduced
@@ -120,6 +125,7 @@ target_include_directories(tournament
 target_link_libraries(tournament
     PRIVATE
     great_risks_lib
+    tsl::robin_map
 )
 
 # install(
