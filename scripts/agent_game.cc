@@ -12,10 +12,12 @@ using namespace great_risks;
 using json = nlohmann::json;
 
 Field field;
+std::vector<Action> last_actions;
 
 void print_state()
 {
     json j;
+    j["actions"] = last_actions;
     j["goals"] = json::array();
     for (MobileGoal &goal : field.goals)
     {
@@ -52,32 +54,37 @@ auto main(int argc, char **argv) -> int
     robot_1.y = 0;
     robot_1.is_red = true;
     field.add_robot(robot_1);
-    // Robot robot_2;
-    // robot_2.x = 9;
-    // robot_2.y = 0;
-    // robot_1.is_red = true;
-    // field.add_robot(robot_2);
-    // Robot robot_3;
-    // robot_3.x = 1;
-    // robot_3.y = 10;
-    // robot_3.is_red = false;
-    // field.add_robot(robot_3);
+    Robot robot_2;
+    robot_2.x = 9;
+    robot_2.y = 0;
+    robot_1.is_red = true;
+    field.add_robot(robot_2);
+    Robot robot_3;
+    robot_3.x = 1;
+    robot_3.y = 10;
+    robot_3.is_red = false;
+    field.add_robot(robot_3);
     Robot robot_4;
     robot_4.x = 9;
     robot_4.y = 10;
     robot_4.is_red = false;
     field.add_robot(robot_4);
     std::vector<Agent *> agents;
-    agents.push_back(new MCTSAgentGreedy(0, 1, time(NULL)));
-    agents.push_back(new GreedyAgent(1));
+    srand(time(NULL));
+    agents.emplace_back(new MCTSAgentRandom(0, rand()));
+    agents.emplace_back(new MCTSAgentRandom(1, rand()));
+    agents.emplace_back(new MCTSAgentRandom(2, rand()));
+    agents.emplace_back(new MCTSAgentRandom(3, rand()));
     while (field.time_remaining > 0)
     {
         print_state();
+        last_actions.clear();
         //json j;
         //std::cin >> j;
         for (size_t i = 0; i < agents.size(); i++)
         {
             auto action = agents[i]->next_action(field);
+            last_actions.emplace_back(action);
             field.perform_action(i, action);
         }
         field.time_remaining--;

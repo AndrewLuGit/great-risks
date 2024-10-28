@@ -96,6 +96,7 @@ namespace great_risks
         SCORE_WALL_STAKE,
         DESCORE_MOBILE_GOAL,
         DESCORE_WALL_STAKE,
+        DO_NOTHING
     };
 
     class Field

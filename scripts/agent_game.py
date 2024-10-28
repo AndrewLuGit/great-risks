@@ -3,6 +3,25 @@ import json
 import sys
 from tkinter import *
 
+action_dict = {
+    0: "Move North",
+    1: "Move South",
+    2: "Move East",
+    3: "Move West",
+    4: "Grab Mobile Goal",
+    5: "Release Mobile Goal",
+    6: "Tip Mobile Goal",
+    7: "Untip Mobile Goal",
+    8: "Pick Up Red Ring",
+    9: "Pick Up Blue Ring",
+    10: "Release Ring",
+    11: "Score on Mobile Goal",
+    12: "Score on Wall Stake",
+    13: "Descore from Mobile Goal",
+    14: "Descore from Wall Stake",
+    15: "Do Nothing"
+}
+
 if __name__ == "__main__":
     sub = subprocess.Popen(["build/agent_game"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=sys.stderr)
     root = Tk()
@@ -37,6 +56,8 @@ if __name__ == "__main__":
             label_text += f"Stake {i}: {json.dumps(stake)}{newline}"
         for i, robot in enumerate(state["robots"]):
             label_text += f"Robot {i}: {json.dumps(robot)}{newline}"
+        for i, action in enumerate(state["actions"]):
+            label_text += f"Robot {i} action: {action_dict[action]}{newline}"
         label_text += f"Red Score: {state["scores"]["red"]}, Blue Score: {state["scores"]["blue"]}{newline}"
         label_text += f"Time Remaining: {state["time_remaining"]}"
         label["text"] = label_text

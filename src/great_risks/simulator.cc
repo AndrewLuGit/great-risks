@@ -212,6 +212,7 @@ namespace great_risks
                 }
             }
         }
+        result.push_back(DO_NOTHING);
         return result;
     }
 
