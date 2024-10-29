@@ -114,7 +114,7 @@ namespace great_risks
                 for (const auto &rollout : rollouts) {
                     rollout_cache.insert_or_assign(rollout, reward);
                 }
-                rollout_cache.insert_or_assign(node->state, reward);
+                //rollout_cache.insert_or_assign(node->state, reward);
             }
             // backpropagation
             while (node)

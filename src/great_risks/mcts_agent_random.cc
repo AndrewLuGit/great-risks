@@ -85,45 +85,54 @@ namespace great_risks
                 node = child;
             }
             // rollout
+            int score_diff = 0;
             Field rollout = node->state;
             uint8_t index = node->robot_index;
-            while (rollout.time_remaining > 0)
-            {
-                auto legal_actions = rollout.legal_actions(index);
-                std::vector<uint8_t> weights;
-                uint8_t sum_weights = 0;
-                for (const auto &action : legal_actions) {
-                    if (action == GRAB_MOBILE_GOAL || action == SCORE_MOBILE_GOAL || action == SCORE_WALL_STAKE) {
-                        weights.push_back(2);
-                    } else if ((rollout.robots[index].is_red && action == PICK_UP_RED) || (!rollout.robots[index].is_red && action == PICK_UP_BLUE)) {
-                        weights.push_back(2);
-                    } else {
-                        weights.push_back(1);
-                    }
-                    sum_weights += weights.back();
-                }
-                std::uniform_int_distribution<uint32_t> uniform_dist(0, sum_weights - 1);
-                auto rand = uniform_dist(rng);
-                Action chosen_action = legal_actions.back();
-                for (size_t i = 0; i < weights.size(); i++) {
-                    if (rand < weights[i]) {
-                        chosen_action = legal_actions[i];
-                        break;
-                    }
-                    rand -= weights[i];
-                }
-                //std::uniform_int_distribution<uint32_t> uniform_dist(0, legal_actions.size() - 1);
-                //Action chosen_action = legal_actions[uniform_dist(rng)];
-                rollout.perform_action(index, chosen_action);
-                index = (index + 1) % rollout.robots.size();
-                if (index == 0)
-                {
-                    rollout.time_remaining--;
-                }
+            auto cached = rollout_cache[index].find(rollout);
+            if (cached != rollout_cache[index].end()) {
+                score_diff = cached->second;
             }
-            auto [red_score, blue_score] = rollout.calculate_scores();
-            float red_reward = 1 - exp(0.1 * (blue_score - red_score));
-            float blue_reward = 1 - exp(0.1 * (red_score - blue_score));
+            else {
+                while (rollout.time_remaining > 0)
+                {
+                    auto legal_actions = rollout.legal_actions(index);
+                    std::vector<uint8_t> weights;
+                    uint8_t sum_weights = 0;
+                    for (const auto &action : legal_actions) {
+                        if (action == GRAB_MOBILE_GOAL || action == SCORE_MOBILE_GOAL || action == SCORE_WALL_STAKE) {
+                            weights.push_back(2);
+                        } else if ((rollout.robots[index].is_red && action == PICK_UP_RED) || (!rollout.robots[index].is_red && action == PICK_UP_BLUE)) {
+                            weights.push_back(2);
+                        } else {
+                            weights.push_back(1);
+                        }
+                        sum_weights += weights.back();
+                    }
+                    std::uniform_int_distribution<uint32_t> uniform_dist(0, sum_weights - 1);
+                    auto rand = uniform_dist(rng);
+                    Action chosen_action = legal_actions.back();
+                    for (size_t i = 0; i < weights.size(); i++) {
+                        if (rand < weights[i]) {
+                            chosen_action = legal_actions[i];
+                            break;
+                        }
+                        rand -= weights[i];
+                    }
+                    //std::uniform_int_distribution<uint32_t> uniform_dist(0, legal_actions.size() - 1);
+                    //Action chosen_action = legal_actions[uniform_dist(rng)];
+                    rollout.perform_action(index, chosen_action);
+                    index = (index + 1) % rollout.robots.size();
+                    if (index == 0)
+                    {
+                        rollout.time_remaining--;
+                    }
+                }
+                auto [red_score, blue_score] = rollout.calculate_scores();
+                score_diff = red_score - blue_score;
+                rollout_cache[node->robot_index].insert_or_assign(node->state, score_diff);
+            }
+            float red_reward = 1 - exp(-0.1 * score_diff);
+            float blue_reward = 1 - exp(0.1 * score_diff);
             if (red_reward < 0) red_reward = 0;
             if (blue_reward < 0) blue_reward = 0;
             // backpropagation
