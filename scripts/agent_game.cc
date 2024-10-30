@@ -71,7 +71,7 @@ auto main(int argc, char **argv) -> int
     field.add_robot(robot_4);
     std::vector<std::unique_ptr<Agent>> agents;
     srand(time(NULL));
-    agents.emplace_back(std::make_unique<MCTSAgentRandom>(0, rand()));
+    agents.emplace_back(std::make_unique<MCTSAgentGreedy>(0, 1, rand()));
     agents.emplace_back(std::make_unique<GreedyAgent>(1));
     while (field.time_remaining > 0)
     {

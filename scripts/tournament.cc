@@ -28,8 +28,8 @@ void run_match() {
     field.add_robot(robot_2);
     std::vector<std::unique_ptr<Agent>> agents;
     mtx.lock();
-    agents.emplace_back(std::make_unique<MCTSAgentRandom>(0, rand()));
-    agents.emplace_back(std::make_unique<GreedyAgent>(1));
+    agents.emplace_back(std::make_unique<MCTSAgentGreedy>(0, 1, rand()));
+    agents.emplace_back(std::make_unique<MCTSAgentRandom>(1, rand()));
     mtx.unlock();
     while (field.time_remaining > 0) {
         for (size_t i = 0; i < agents.size(); i++)
@@ -41,7 +41,7 @@ void run_match() {
     }
     auto [red_score, blue_score] = field.calculate_scores();
     mtx.lock();
-    //std::cout << "" << red_score << " " << blue_score << "\n";
+    std::cout << "" << red_score << " " << blue_score << "\n";
     if (red_score > blue_score) {
         red_wins++;
     } else if (red_score < blue_score) {
@@ -54,11 +54,11 @@ void run_match() {
 
 int main() {
     srand(time(NULL));
-    for (int i = 0; i < 100; i+= 10) {
+    for (int i = 0; i < 100; i+= 5) {
         std::cout << "running match " << i << "\n";
         std::vector<std::thread> threads;
-        for (int j = 0; j < 10; j++) {
-            threads.push_back(std::thread(run_match));
+        for (int j = 0; j < 5; j++) {
+            threads.emplace_back(run_match);
         }
         for (auto &thread : threads) {
             thread.join();
