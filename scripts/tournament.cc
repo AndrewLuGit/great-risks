@@ -26,10 +26,10 @@ void run_match() {
     robot_2.y = 10;
     robot_2.is_red = false;
     field.add_robot(robot_2);
-    std::vector<Agent *> agents;
+    std::vector<std::unique_ptr<Agent>> agents;
     mtx.lock();
-    agents.push_back(new MCTSAgentGreedy(0, 1, rand()));
-    agents.push_back(new GreedyAgent(1));
+    agents.emplace_back(std::make_unique<MCTSAgentRandom>(0, rand()));
+    agents.emplace_back(std::make_unique<GreedyAgent>(1));
     mtx.unlock();
     while (field.time_remaining > 0) {
         for (size_t i = 0; i < agents.size(); i++)

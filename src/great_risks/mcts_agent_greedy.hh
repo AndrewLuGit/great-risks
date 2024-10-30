@@ -22,6 +22,7 @@ namespace great_risks
         {
             rng.seed(seed);
         }
+        ~MCTSAgentGreedy() override = default;
 
         Action next_action(Field field) override;
     };

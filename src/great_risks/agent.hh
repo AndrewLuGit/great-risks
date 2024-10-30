@@ -11,6 +11,7 @@ namespace great_risks
 
     public:
         Agent(std::uint8_t robot_index) : robot_index(robot_index) {};
+        virtual ~Agent() = default;
         virtual Action next_action(Field field) = 0;
     };
 }  // namespace great_risks

@@ -9,6 +9,7 @@ namespace great_risks
         using Agent::Agent;
 
     public:
+        ~GreedyAgent() override = default;
         Action next_action(Field field) override;
     };
 }  // namespace great_risks

@@ -69,10 +69,10 @@ auto main(int argc, char **argv) -> int
     robot_4.y = 10;
     robot_4.is_red = false;
     field.add_robot(robot_4);
-    std::vector<Agent *> agents;
+    std::vector<std::unique_ptr<Agent>> agents;
     srand(time(NULL));
-    agents.emplace_back(new MCTSAgentGreedy(0, 1, rand()));
-    agents.emplace_back(new GreedyAgent(1));
+    agents.emplace_back(std::make_unique<MCTSAgentRandom>(0, rand()));
+    agents.emplace_back(std::make_unique<GreedyAgent>(1));
     while (field.time_remaining > 0)
     {
         print_state();
