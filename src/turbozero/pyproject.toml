@@ -1,0 +1,35 @@
+[tool.poetry]
+name = "turbozero"
+version = "0.1.0"
+description = "vectorized alphazero/mcts in JAX"
+authors = ["lowrollr <92640744+lowrollr@users.noreply.github.com>"]
+license = "Apache-2.0"
+readme = "README.md"
+packages = [
+    { include = "core" }
+]
+
+[[tool.poetry.source]]
+name = "PyPI"
+priority = "primary"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+graphviz = "^0.20.1"
+wandb = "0.16.2"
+jax = "0.4.24"
+jaxlib = "0.4.24"
+flax = "^0.7.5"
+optax = "^0.1.8"
+orbax = "^0.1.9"
+chex = "^0.1.85"
+pgx = "^2.0.1"
+dm-haiku = "^0.0.12"
+cairosvg = "^2.7.1"
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.25.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
