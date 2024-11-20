@@ -6,10 +6,11 @@ from core.evaluators.mcts.action_selection import PUCTSelector
 from core.evaluators.mcts.mcts import MCTS
 from core.memory.replay_memory import EpisodeReplayBuffer
 from functools import partial
-from core.testing.two_player_baseline import TwoPlayerBaseline
+from core.testing.two_player_tester import TwoPlayerTester
 from core.training.loss_fns import az_default_loss_fn
 from core.training.train import Trainer
 import optax
+import orbax.checkpoint as ocp
 
 resnet = AZResnet(AZResnetConfig(
     policy_head_out_size=6,
@@ -52,9 +53,11 @@ trainer = Trainer(
     env_step_fn = step,
     env_init_fn = init,
     state_to_nn_input_fn=observe,
-    testers = [],
+    testers = [TwoPlayerTester(num_episodes=64, render_fn=render_text, render_dir=".")],
     evaluator_test = az_evaluator_test,
     # wandb_project_name = 'turbozero-othello' 
 )
 
 output = trainer.train_loop(seed=0, num_epochs=100, eval_every=5)
+checkpointer = ocp.StandardCheckpointer()
+checkpointer.save("ckpt", output.train_state.params)

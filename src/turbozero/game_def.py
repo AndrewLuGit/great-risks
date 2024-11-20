@@ -55,7 +55,7 @@ def reward(state: State):
     player_0_rings = state.player_states[0][3]
     player_1_rings = state.player_states[1][3]
     winner = jax.lax.select(player_0_rings > player_1_rings, 0, 1)
-    rewards = jax.lax.select(player_0_rings == player_1_rings, jnp.float32([0.5, 0.5]), jnp.zeros(2, dtype=jnp.float32).at[winner].set(1))
+    rewards = jax.lax.select(player_0_rings == player_1_rings, jnp.zeros(2, dtype=jnp.float32), jnp.float32([-1, -1]).at[winner].set(1))
     return terminal, rewards
 
 def move(state: State, direction):
@@ -95,10 +95,10 @@ def step(state: State, action):
 def observe(state: State):
     ring_grid = state.rings.reshape((5, 5))
     goal_grid = state.goals.reshape((5, 5))
-    player_0_state = 1 + state.player_states[0][2] + 2 * state.player_states[0][3]
-    player_1_state = -1 - 1 * state.player_states[1][2] - 2 * state.player_states[1][3]
+    player_0_state = 1 + state.player_states[0][2] + state.player_states[0][3]
+    player_1_state = -1 - state.player_states[1][2] - state.player_states[1][3]
     multiplier = jax.lax.select(state.current_player == 0, 1, -1)
-    player_grid= jnp.zeros((5, 5,), dtype=jnp.int32).at[state.player_states[0][0], state.player_states[0][1]].set(multiplier * player_0_state).at[state.player_states[1][0], state.player_states[1][1]].set(multiplier * player_1_state)
+    player_grid= jnp.zeros((5, 5), dtype=jnp.int32).at[state.player_states[0][0], state.player_states[0][1]].set(multiplier * player_0_state).at[state.player_states[1][0], state.player_states[1][1]].set(multiplier * player_1_state)
     return jnp.stack((ring_grid, goal_grid, player_grid))
 
 def init(key):
@@ -111,3 +111,13 @@ def init(key):
     terminated, rewards = reward(init_state)
     legal_action_mask = legal_actions(init_state)
     return init_state, StepMetadata(rewards=rewards, action_mask=legal_action_mask, terminated=terminated, cur_player_id=init_state.current_player, step=init_state.step_count)
+
+def render_text(frames, p_ids, title, frame_dir):
+    trained_agent_id = p_ids[0]
+    with open(f"{frame_dir}/{title}.txt", "w") as file:
+        for frame in frames:
+            state = frame.env_state
+            corrected_frame = state.replace(current_player=trained_agent_id)
+            file.write(str(observe(corrected_frame)[2]))
+            file.write("\n")
+    return f"{frame_dir}/{title}.txt"
