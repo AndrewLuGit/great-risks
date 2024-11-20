@@ -21,7 +21,7 @@ class State:
     step_count: jax.Array = struct.field(default_factory=lambda: jnp.int32(0))
 
 INIT_RINGS = jnp.int32(
-    [2, 0, 1, 0, 2,
+    [[2, 0, 1, 0, 2,
      0, 1, 0, 1, 0,
      0, 1, 0, 1, 0,
      0, 1, 0, 1, 0,
@@ -30,7 +30,7 @@ INIT_RINGS = jnp.int32(
      0, 1, 0, 1, 0,
      0, 1, 0, 1, 0,
      0, 1, 0, 1, 0,
-     2, 0, 1, 0, 2])
+     2, 0, 1, 0, 2]])
 
 INIT_PLAYERS = jnp.int32([[2, 0, -1, 0], [2, 4, -1, 0]])
 
@@ -57,7 +57,7 @@ class Actions:
 def legal_actions(state: State):
     player_state = state.player_states[state.current_player]
     position = 5 * player_state[0] + player_state[1]
-    legal_action_mask = jnp.zeros(6, dtype=jnp.bool_)\
+    legal_action_mask = jnp.zeros(7, dtype=jnp.bool_)\
         .at[Actions.MOVE_NORTH].set(player_state[0] > 0)\
         .at[Actions.MOVE_SOUTH].set(player_state[0] < 4)\
         .at[Actions.MOVE_WEST].set(player_state[1] > 0)\
@@ -85,7 +85,7 @@ def reward(state: State):
     player_0_rings = player_scores[0]
     player_1_rings = player_scores[1]
     winner = jax.lax.select(player_0_rings > player_1_rings, 0, 1)
-    rewards = jax.lax.select(player_0_rings == player_1_rings, jnp.float32([0.5, 0.5]), jnp.zeros(2, dtype=jnp.float32).at[winner].set(1))
+    rewards = jax.lax.select(player_0_rings == player_1_rings, jnp.zeros(2, dtype=jnp.float32), jnp.float32([-1, -1]).at[winner].set(1))
     return terminal, rewards
 
 def move(state: State, direction):
@@ -115,7 +115,7 @@ def pick_up_ring(state: State):
 def release_goal(state: State):
     position = 5 * state.player_states[state.current_player][0] + state.player_states[state.current_player][1]
     new_goal_grid = state.goal_grid.at[position].set(state.player_states[state.current_player, 2] + 1)
-    new_states = state.player_states.at[state.current_player, 2].set(-1)
+    new_states = state.player_states.at[state.current_player, 2].set(-1).at[state.current_player, 3].set(0)
     return state.replace(player_states=new_states, goal_grid=new_goal_grid)
 
 def step(state: State, action):
@@ -138,27 +138,24 @@ def observe(state: State):
     red_rings = state.rings[0].reshape((5, 5))
     blue_rings = state.rings[1].reshape((5, 5))
     red_scored = jnp.zeros((5, 5), dtype=jnp.int32)\
-        .at[state.goals[0, 0:2]].set(state.goals[0, 2])\
-        .at[state.goals[1, 0:2]].set(state.goals[1, 2])\
-        .at[state.goals[2, 0:2]].set(state.goals[2, 2])
+        .at[state.goals[0, 0], state.goals[0, 1]].set(state.goals[0, 2])\
+        .at[state.goals[1, 0], state.goals[1, 1]].set(state.goals[1, 2])\
+        .at[state.goals[2, 0], state.goals[2, 1]].set(state.goals[2, 2])
     blue_scored = jnp.zeros((5, 5), dtype=jnp.int32)\
-        .at[state.goals[0, 0:2]].set(state.goals[0, 3])\
-        .at[state.goals[1, 0:2]].set(state.goals[1, 3])\
-        .at[state.goals[2, 0:2]].set(state.goals[2, 3])
+        .at[state.goals[0, 0], state.goals[0, 1]].set(state.goals[0, 3])\
+        .at[state.goals[1, 0], state.goals[1, 1]].set(state.goals[1, 3])\
+        .at[state.goals[2, 0], state.goals[2, 1]].set(state.goals[2, 3])
     top_rings = jnp.zeros((5, 5), dtype=jnp.int32)\
-        .at[state.goals[0, 0:2]].set(TOP_RING_MAP[state.goals[0, 4]])\
-        .at[state.goals[1, 0:2]].set(TOP_RING_MAP[state.goals[1, 4]])\
-        .at[state.goals[2, 0:2]].set(TOP_RING_MAP[state.goals[2, 4]])
-    goals = jnp.zeros((5, 5), dtype=jnp.int32)\
-        .at[state.goals[0, 0:2]].set(1)\
-        .at[state.goals[1, 0:2]].set(1)\
-        .at[state.goals[2, 0:2]].set(1)
+        .at[state.goals[0, 0], state.goals[0, 1]].set(TOP_RING_MAP[state.goals[0, 4]])\
+        .at[state.goals[1, 0], state.goals[1, 1]].set(TOP_RING_MAP[state.goals[1, 4]])\
+        .at[state.goals[2, 0], state.goals[2, 1]].set(TOP_RING_MAP[state.goals[2, 4]])
+    goals = jax.lax.min(state.goal_grid.reshape((5, 5)), jnp.ones((5, 5), dtype=jnp.int32))
     players = jnp.zeros((5, 5), dtype=jnp.int32)\
-        .at[state.player_states[0, 0:2]].set(1)\
-        .at[state.player_states[1, 0:2]].set(-1)
+        .at[state.player_states[0, 0], state.player_states[0, 1]].set(1)\
+        .at[state.player_states[1, 0], state.player_states[1, 1]].set(-1)
     return jax.lax.select(state.current_player == 0,
-        jnp.stack(red_rings, blue_rings, red_scored, blue_scored, top_rings, goals, players),
-        jnp.stack(blue_rings, red_rings, blue_scored, red_scored, -1 * top_rings, -1 * players))
+        jnp.stack((red_rings, blue_rings, red_scored, blue_scored, top_rings, goals, players)),
+        jnp.stack((blue_rings, red_rings, blue_scored, red_scored, top_rings * -1, goals, players * -1)))
 
 def init(key):
     init_state = State(

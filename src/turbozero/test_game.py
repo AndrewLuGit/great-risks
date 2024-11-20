@@ -1,4 +1,4 @@
-from game_def import *
+from complex_game_def import *
 import jax
 
 state, meta = init(jax.random.key(0))
