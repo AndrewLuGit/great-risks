@@ -1,4 +1,4 @@
-from game_def import *
+from complex_game_def import *
 from core.networks.azresnet import AZResnet, AZResnetConfig
 from core.evaluators.alphazero import AlphaZero
 from core.evaluators.evaluation_fns import make_nn_eval_fn
@@ -11,9 +11,10 @@ from core.training.loss_fns import az_default_loss_fn
 from core.training.train import Trainer
 import optax
 import orbax.checkpoint as ocp
+from os import path
 
 resnet = AZResnet(AZResnetConfig(
-    policy_head_out_size=6,
+    policy_head_out_size=8,
     num_blocks=4,
     num_channels=32,
 ))
@@ -22,7 +23,7 @@ az_evaluator = AlphaZero(MCTS)(
     eval_fn = make_nn_eval_fn(resnet, observe),
     num_iterations = 32,
     max_nodes = 40,
-    branching_factor = 6,
+    branching_factor = 8,
     action_selector = PUCTSelector(),
     temperature = 1.0
 )
@@ -31,7 +32,7 @@ az_evaluator_test = AlphaZero(MCTS)(
     eval_fn = make_nn_eval_fn(resnet, observe),
     num_iterations = 64,
     max_nodes = 80,
-    branching_factor = 6,
+    branching_factor = 8,
     action_selector = PUCTSelector(),
     temperature = 0.0
 )
@@ -53,11 +54,12 @@ trainer = Trainer(
     env_step_fn = step,
     env_init_fn = init,
     state_to_nn_input_fn=observe,
-    testers = [TwoPlayerTester(num_episodes=64, render_fn=render_text, render_dir=".")],
+    testers = [TwoPlayerTester(num_episodes=64, render_fn=render_gif, render_dir=".")],
+    #testers = [TwoPlayerTester(num_episodes=64)],
     evaluator_test = az_evaluator_test,
     # wandb_project_name = 'turbozero-othello' 
 )
 
 output = trainer.train_loop(seed=0, num_epochs=100, eval_every=5)
 checkpointer = ocp.StandardCheckpointer()
-checkpointer.save("ckpt", output.train_state.params)
+checkpointer.save(path.realpath("ckpt"), output.train_state.params)

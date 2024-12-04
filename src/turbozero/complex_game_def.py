@@ -5,18 +5,20 @@ import jax.numpy as jnp
 
 from flax import struct
 
+from PIL import Image, ImageDraw
+
 TRUE = jnp.bool_(True)
 FALSE = jnp.bool_(False)
 
 # player state: [x, y, goal, rings]
-# goal state: [x, y, red rings, blue rings, top ring]
+# goal state: [x, y, red rings, blue rings, top ring, on_robot]
 
 @struct.dataclass
 class State:
     current_player: jax.Array = struct.field(default_factory=lambda: jnp.int32(0))
     player_states: jax.Array = struct.field(default_factory=lambda: jnp.zeros((2, 4), dtype=jnp.int32))
     rings: jax.Array = struct.field(default_factory=lambda: jnp.zeros((2, 25), dtype=jnp.int32))
-    goals: jax.Array = struct.field(default_factory=lambda: jnp.zeros((3, 5), dtype=jnp.int32))
+    goals: jax.Array = struct.field(default_factory=lambda: jnp.zeros((3, 6), dtype=jnp.int32))
     goal_grid: jax.Array = struct.field(default_factory=lambda: jnp.zeros(25, dtype=jnp.int32))
     step_count: jax.Array = struct.field(default_factory=lambda: jnp.int32(0))
 
@@ -34,7 +36,7 @@ INIT_RINGS = jnp.int32(
 
 INIT_PLAYERS = jnp.int32([[2, 0, -1, 0], [2, 4, -1, 0]])
 
-INIT_GOALS = jnp.int32([[1, 2, 0, 0, -1], [2, 2, 0, 0, -1], [3, 2, 0, 0, -1]])
+INIT_GOALS = jnp.int32([[1, 2, 0, 0, -1, 0], [2, 2, 0, 0, -1, 0], [3, 2, 0, 0, -1, 0]])
 
 INIT_GOAL_GRID = jnp.int32(
     [0, 0, 0, 0, 0,
@@ -53,23 +55,25 @@ class Actions:
     GRAB_GOAL = 4
     PICK_UP_RING = 5
     RELEASE_GOAL = 6
+    DO_NOTHING = 7
 
 def legal_actions(state: State):
     player_state = state.player_states[state.current_player]
     position = 5 * player_state[0] + player_state[1]
-    legal_action_mask = jnp.zeros(7, dtype=jnp.bool_)\
+    legal_action_mask = jnp.zeros(8, dtype=jnp.bool_)\
         .at[Actions.MOVE_NORTH].set(player_state[0] > 0)\
         .at[Actions.MOVE_SOUTH].set(player_state[0] < 4)\
         .at[Actions.MOVE_WEST].set(player_state[1] > 0)\
         .at[Actions.MOVE_EAST].set(player_state[1] < 4)\
         .at[Actions.GRAB_GOAL].set((player_state[2] == -1) & (state.goal_grid[position] != 0))\
         .at[Actions.PICK_UP_RING].set((player_state[2] != -1) & (player_state[3] < 6) & (state.rings[state.current_player][position] != 0))\
-        .at[Actions.RELEASE_GOAL].set((player_state[2] != -1) & (state.goal_grid[position] == 0))
+        .at[Actions.RELEASE_GOAL].set((player_state[2] != -1) & (state.goal_grid[position] == 0))\
+        .at[Actions.DO_NOTHING].set(TRUE)
     return legal_action_mask
 
 def goal_scores(goal):
     reward = goal[2:4] + jnp.zeros(2, dtype=jnp.int32).at[goal[4]].set(jax.lax.select(goal[4] == -1, 0, 2))
-    on_edge = (goal[1] == 0) | (goal[1] == 4)
+    on_edge = ((goal[1] == 0) | (goal[1] == 4)) & (goal[5] == 0)
     in_positive_corner = (goal[0] == 4) & on_edge
     in_negative_corner = (goal[0] == 0) & on_edge
     multiplier = jax.lax.select(in_positive_corner, 2, 1)
@@ -101,8 +105,9 @@ def grab_goal(state: State):
     position = 5 * state.player_states[state.current_player][0] + state.player_states[state.current_player][1]
     goal_index = state.goal_grid[position] - 1
     new_goal_grid = state.goal_grid.at[position].set(0)
-    new_states = state.player_states.at[state.current_player, 2].set(goal_index)
-    return state.replace(player_states=new_states, goal_grid=new_goal_grid)
+    new_states = state.player_states.at[state.current_player, 2].set(goal_index).at[state.current_player, 3].set(state.goals[goal_index, 2] + state.goals[goal_index, 3])
+    new_goals = state.goals.at[goal_index, 5].set(1)
+    return state.replace(player_states=new_states, goal_grid=new_goal_grid, goals=new_goals)
 
 def pick_up_ring(state: State):
     position = 5 * state.player_states[state.current_player, 0] + state.player_states[state.current_player, 1]
@@ -116,7 +121,8 @@ def release_goal(state: State):
     position = 5 * state.player_states[state.current_player][0] + state.player_states[state.current_player][1]
     new_goal_grid = state.goal_grid.at[position].set(state.player_states[state.current_player, 2] + 1)
     new_states = state.player_states.at[state.current_player, 2].set(-1).at[state.current_player, 3].set(0)
-    return state.replace(player_states=new_states, goal_grid=new_goal_grid)
+    new_goals = state.goals.at[state.player_states[state.current_player, 2], 5].set(0)
+    return state.replace(player_states=new_states, goal_grid=new_goal_grid, goals=new_goals)
 
 def step(state: State, action):
     actions = (
@@ -126,7 +132,8 @@ def step(state: State, action):
         lambda: move(state, jnp.array((0, -1))),
         lambda: grab_goal(state),
         lambda: pick_up_ring(state),
-        lambda: release_goal(state)
+        lambda: release_goal(state),
+        lambda: state
     )
     new_state = jax.lax.switch(action, actions)
     new_state = new_state.replace(current_player=1-state.current_player, step_count=state.step_count+1)
@@ -151,8 +158,8 @@ def observe(state: State):
         .at[state.goals[2, 0], state.goals[2, 1]].set(TOP_RING_MAP[state.goals[2, 4]])
     goals = jax.lax.min(state.goal_grid.reshape((5, 5)), jnp.ones((5, 5), dtype=jnp.int32))
     players = jnp.zeros((5, 5), dtype=jnp.int32)\
-        .at[state.player_states[0, 0], state.player_states[0, 1]].set(1)\
-        .at[state.player_states[1, 0], state.player_states[1, 1]].set(-1)
+        .at[state.player_states[0, 0], state.player_states[0, 1]].set(1 + jax.lax.select(state.player_states[0, 2] == -1, 0, 1))\
+        .at[state.player_states[1, 0], state.player_states[1, 1]].set(-1 + jax.lax.select(state.player_states[0, 2] == -1, 0, -1))
     return jax.lax.select(state.current_player == 0,
         jnp.stack((red_rings, blue_rings, red_scored, blue_scored, top_rings, goals, players)),
         jnp.stack((blue_rings, red_rings, blue_scored, red_scored, top_rings * -1, goals, players * -1)))
@@ -168,3 +175,32 @@ def init(key):
     terminated, rewards = reward(init_state)
     legal_action_mask = legal_actions(init_state)
     return init_state, StepMetadata(rewards=rewards, action_mask=legal_action_mask, terminated=terminated, cur_player_id=init_state.current_player, step=init_state.step_count)
+
+def render_gif(frames, p_ids, title, frame_dir):
+    images = []
+    for frame in frames:
+        state = frame.env_state
+        image = Image.new("RGB", (227, 307), "white")
+        draw = ImageDraw.Draw(image)
+        for i in range(1, 227, 45):
+            draw.line([(i, 1), (i, 226)], "black")
+            draw.line([(1, i), (226, i)], "black")
+        for i in range(5):
+            for j in range(5):
+                red_rings = state.rings[0, 5 * i + j]
+                blue_rings = state.rings[1, 5 * i + j]
+                if red_rings > 0:
+                    draw.text((12 + 45 * j, 23 + 45 * i), text=str(red_rings), fill="red")
+                if blue_rings > 0:
+                    draw.text((34 + 45 * j, 23 + 45 * i), text=str(blue_rings), fill="blue")
+        draw.text((23 + 45 * state.player_states[0, 1], 23 + 45 * state.player_states[0, 0]), text="R", fill="red")
+        draw.text((23 + 45 * state.player_states[1, 1], 23 + 45 * state.player_states[1, 0]), text="R", fill="blue")
+        for i in range(3):
+            draw.text((113, 257 + i * 20), text=f"goal {i}: {state.goals[i, 2]} red, {state.goals[i, 3]} blue, {state.goals[i, 4]} top", fill="black", anchor="mm")
+            if state.goals[i, 5] == 0:
+                draw.text((23 + 45 * state.goals[i, 1], 23 + 45 * state.goals[i, 0]), text="G", fill="black")
+        player_scores = scores(state)
+        draw.text((113, 237), text=f"step: {state.step_count} red: {player_scores[0]} blue: {player_scores[1]}", fill="black", anchor="mm")
+        images.append(image)
+    gif_path = f"{frame_dir}/{title}.gif"
+    images[0].save(gif_path, save_all=True, append_images=images[1:], duration=900, loop=0)
